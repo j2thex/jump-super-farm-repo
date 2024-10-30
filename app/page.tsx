@@ -24,7 +24,7 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="p-4">
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-white text-black">
       {userData ? (
         <>
           <h1 className="text-2xl font-bold mb-4">Hello Grishka!</h1>
@@ -36,6 +36,7 @@ export default function Home() {
             <li>Language Code: {userData.language_code}</li>
             <li>Is Premium: {userData.is_premium ? 'Yes' : 'No'}</li>
           </ul>
+          <img src="https://github.com/j2thex/jump-super-farm-repo/blob/main/clicker.png" alt="Fun Placeholder" className="rounded-full border border-gray-300" />
         </>
       ) : (
         <div>Loading...</div>
