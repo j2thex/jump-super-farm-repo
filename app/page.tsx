@@ -36,7 +36,7 @@ export default function Home() {
             <li>Language Code: {userData.language_code}</li>
             <li>Is Premium: {userData.is_premium ? 'Yes' : 'No'}</li>
           </ul>
-          <img src="https://raw.githubusercontent.com/j2thex/jump-super-farm-repo/refs/heads/main/logo.png" alt="Fun Placeholder" className="rounded-full border border-gray-300" />
+          <img src="https://raw.githubusercontent.com/j2thex/jump-super-farm-repo/refs/heads/main/logo.png" alt="Fun Placeholder"  />
         </>
       ) : (
         <div>Loading...</div>
