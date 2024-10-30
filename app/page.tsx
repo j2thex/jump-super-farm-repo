@@ -17,7 +17,8 @@ export default function Home() {
   const [userData, setUserData] = useState<UserData | null>(null)
 
   useEffect(() => {
-    if (WebApp.initDataUnsafe.user) {
+    // Check if `window` is available to prevent issues with SSR
+    if (typeof window !== 'undefined' && WebApp.initDataUnsafe?.user) {
       setUserData(WebApp.initDataUnsafe.user as UserData)
     }
   }, [])
