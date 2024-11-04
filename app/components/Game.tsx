@@ -47,6 +47,71 @@ type UserData = {
   firstTime: boolean;
 };
 
+// Define styled components first
+const DebugPanel = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 15px;
+  font-size: 14px;
+  z-index: 1000;
+  border-top: 2px solid #4CAF50;
+`;
+
+const DebugHeader = styled.h3`
+  margin: 0 0 10px 0;
+  color: #4CAF50;
+  font-size: 16px;
+`;
+
+const DebugGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+`;
+
+const DebugItem = styled.div`
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+`;
+
+const Label = styled.span`
+  color: #4CAF50;
+  font-weight: bold;
+  margin-right: 8px;
+`;
+
+const Value = styled.span`
+  color: #fff;
+`;
+
+const LogSection = styled.div`
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+`;
+
+const LogContainer = styled.div`
+  margin-top: 5px;
+  max-height: 100px;
+  overflow-y: auto;
+`;
+
+const LogEntry = styled.div`
+  font-family: monospace;
+  padding: 2px 0;
+  color: #ddd;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('START');
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
@@ -112,7 +177,7 @@ export default function Game() {
     };
 
     initUser();
-  }, []);
+  }, [loading, saveUserData]);
 
   // Save user data when it changes
   const saveUserData = async () => {
@@ -601,17 +666,3 @@ const LoadingScreen = styled.div`
     color: var(--tg-theme-text-color, #000);
   }
 `;
-
-const DebugPanel = styled.div`
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 10px;
-  font-size: 12px;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1000;
-`; 
