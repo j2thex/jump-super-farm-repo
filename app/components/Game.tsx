@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 // Game states
-type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM' | 'RESEARCH';
+type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM' | 'RESEARCH' | 'MARKET';
 
 // Character types
 type Character = {
@@ -22,6 +22,7 @@ type Crop = {
   plantedAt: number;
   stage: CropStage;
   lastWatered?: number;
+  harvestReady?: boolean;
 };
 
 interface ResearchItemProps {
@@ -103,6 +104,26 @@ export default function Game() {
     return () => clearInterval(interval);
   }, []);
 
+  const formatTimeLeft = (plantedAt: number): string => {
+    const now = Date.now();
+    const growthTime = 12 * 60 * 1000; // 12 minutes in milliseconds
+    const timeLeft = Math.max(0, (plantedAt + growthTime) - now);
+    
+    if (timeLeft === 0) return 'Ready!';
+    
+    const minutes = Math.floor(timeLeft / 60000);
+    const seconds = Math.floor((timeLeft % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const harvestCrop = (slot: number) => {
+    const crop = crops.find(c => c.slot === slot);
+    if (crop && crop.stage === 5) {
+      setSilver(silver + 5); // Get 5 silver per harvest
+      setCrops(crops.filter(c => c.slot !== slot));
+    }
+  };
+
   return (
     <GameContainer>
       {gameState === 'START' && (
@@ -133,19 +154,29 @@ export default function Game() {
         <FarmScreen>
           <TopBar>
             <div>Silver: {silver}</div>
-            <button onClick={() => setGameState('RESEARCH')}>Research</button>
+            <div>
+              <button onClick={() => setGameState('MARKET')}>Market</button>
+              <button onClick={() => setGameState('RESEARCH')}>Research</button>
+            </div>
           </TopBar>
           
           <FarmGrid>
             {Array.from({ length: 6 }).map((_, index) => {
               const crop = crops.find(c => c.slot === index);
               return (
-                <FarmSlot 
-                  key={index}
-                  onClick={() => plantCrop(index)}
-                >
-                  {crop ? getCropEmoji(crop.stage) : '🟫'}
-                </FarmSlot>
+                <FarmSlotContainer key={index}>
+                  <FarmSlot 
+                    onClick={() => crop?.stage === 5 ? harvestCrop(index) : plantCrop(index)}
+                    isReady={crop?.stage === 5}
+                  >
+                    {crop ? getCropEmoji(crop.stage) : '🟫'}
+                  </FarmSlot>
+                  {crop && (
+                    <Timer>
+                      {formatTimeLeft(crop.plantedAt)}
+                    </Timer>
+                  )}
+                </FarmSlotContainer>
               );
             })}
           </FarmGrid>
@@ -173,6 +204,21 @@ export default function Game() {
             Back to Farm
           </BackButton>
         </ResearchScreen>
+      )}
+
+      {gameState === 'MARKET' && (
+        <MarketScreen>
+          <h2>Market</h2>
+          <MarketInfo>
+            <p>Current Prices:</p>
+            <ul>
+              <li>Wheat: 5 silver</li>
+            </ul>
+          </MarketInfo>
+          <BackButton onClick={() => setGameState('FARM')}>
+            Back to Farm
+          </BackButton>
+        </MarketScreen>
       )}
     </GameContainer>
   );
@@ -282,21 +328,37 @@ const FarmGrid = styled.div`
   margin: 20px auto;
 `;
 
-const FarmSlot = styled.div`
+const FarmSlotContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+`;
+
+const Timer = styled.div`
+  font-size: 0.8em;
+  color: ${props => props.theme.mode === 'dark' ? '#fff' : '#666'};
+  
+  @media (prefers-color-scheme: dark) {
+    color: #fff;
+  }
+`;
+
+const FarmSlot = styled.div<{ isReady?: boolean }>`
   width: 80px;
   height: 80px;
-  border: 2px solid #8B4513;
+  border: 2px solid ${props => props.isReady ? '#4CAF50' : '#8B4513'};
   border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2em;
   cursor: pointer;
-  background: #DEB887;
+  background: ${props => props.isReady ? '#a5d6a7' : '#DEB887'};
   
   @media (prefers-color-scheme: dark) {
-    background: #5c4a3d;
-    border-color: #8B4513;
+    background: ${props => props.isReady ? '#2e7d32' : '#5c4a3d'};
+    border-color: ${props => props.isReady ? '#4CAF50' : '#8B4513'};
   }
 `;
 
@@ -348,5 +410,38 @@ const BackButton = styled.button`
     &:hover {
       background: #333;
     }
+  }
+`;
+
+const MarketScreen = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  
+  @media (prefers-color-scheme: dark) {
+    h2 {
+      color: #fff;
+    }
+  }
+`;
+
+const MarketInfo = styled.div`
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 5px;
+  
+  @media (prefers-color-scheme: dark) {
+    background: #333;
+    color: #fff;
+  }
+  
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+  
+  li {
+    padding: 5px 0;
   }
 `; 
