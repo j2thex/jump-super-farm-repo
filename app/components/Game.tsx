@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Game states
 type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM' | 'RESEARCH' | 'MARKET';
@@ -113,6 +113,7 @@ const LogEntry = styled.div`
 `;
 
 export default function Game() {
+  const [debugLog, setDebugLog] = useState<string[]>([]);
   const [gameState, setGameState] = useState<GameState>('START');
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [silver, setSilver] = useState(10);
@@ -120,14 +121,37 @@ export default function Game() {
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
-  const [debugLog, setDebugLog] = useState<string[]>([]);
 
   const log = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setDebugLog(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  // Initialize user data
+  // Define saveUserData before using it in useEffect
+  const saveUserData = async () => {
+    if (!userId) {
+      log('No user ID, skipping save');
+      return;
+    }
+
+    try {
+      const userData = {
+        userId,
+        character: selectedCharacter,
+        silver,
+        crops,
+        unlockedItems,
+        firstTime: false
+      };
+      log('Saving user data...');
+      await setDoc(doc(db, 'users', userId), userData);
+      log('Data saved successfully');
+    } catch (error) {
+      log(`Error saving data: ${error}`);
+    }
+  };
+
+  // Now we can use saveUserData in useEffect
   useEffect(() => {
     const initUser = async () => {
       try {
@@ -137,7 +161,6 @@ export default function Game() {
         const tgUser = WebApp.initDataUnsafe?.user;
         log(`Telegram user: ${JSON.stringify(tgUser)}`);
         
-        // For testing, use a default ID if no Telegram user
         const userIdToUse = tgUser?.id?.toString() || 'test-user-123';
         setUserId(userIdToUse);
         log(`Using user ID: ${userIdToUse}`);
@@ -177,31 +200,7 @@ export default function Game() {
     };
 
     initUser();
-  }, [loading, saveUserData]);
-
-  // Save user data when it changes
-  const saveUserData = async () => {
-    if (!userId) {
-      log('No user ID, skipping save');
-      return;
-    }
-
-    try {
-      const userData: UserData = {
-        userId,
-        character: selectedCharacter,
-        silver,
-        crops,
-        unlockedItems,
-        firstTime: false
-      };
-      
-      await setDoc(doc(db, 'users', userId), userData);
-      log('Data saved successfully');
-    } catch (error) {
-      log(`Error saving: ${error}`);
-    }
-  };
+  }, []);  // Remove dependencies to avoid circular reference
 
   // Update user data whenever important state changes
   useEffect(() => {
