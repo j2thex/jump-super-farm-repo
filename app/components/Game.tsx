@@ -19,68 +19,86 @@ const characters: Character[] = [
   { id: 3, name: 'Farmer Jack', image: '🧑‍🌾' },
 ];
 
+// Debug component to show current state
+const DebugPanel = ({ state }: { state: any }) => (
+  <div style={{ 
+    position: 'fixed', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    background: 'rgba(0,0,0,0.8)', 
+    color: 'white', 
+    padding: '10px',
+    fontSize: '12px'
+  }}>
+    <pre>{JSON.stringify(state, null, 2)}</pre>
+  </div>
+);
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('CHARACTER_SELECT');
-  const [userId, setUserId] = useState<string>('');
+  const [userId, setUserId] = useState<string>('test123');
   const [character, setCharacter] = useState<Character | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [logs, setLogs] = useState<string[]>([]);
+
+  // Add log function
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   useEffect(() => {
-    const init = async () => {
+    const loadUser = async () => {
       try {
-        const WebApp = (await import('@twa-dev/sdk')).default;
-        const testUserId = 'test123';
-        setUserId(testUserId);
-
-        const userRef = doc(db, 'users', testUserId);
+        addLog('Loading user data...');
+        const userRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          console.log('Loaded user data:', userData);
-          
-          if (userData.character) {
-            console.log('Found character:', userData.character);
-            setCharacter(userData.character);
-            setGameState('FARM');
-          }
+        addLog(`Firebase data: ${JSON.stringify(userData)}`);
+
+        if (userDoc.exists() && userData?.character) {
+          addLog(`Found character: ${userData.character.name}`);
+          setCharacter(userData.character);
+          setGameState('FARM');
         } else {
-          console.log('Creating new user');
-          await setDoc(userRef, {
-            userId: testUserId,
-            character: null
-          });
+          addLog('No character found, showing selection screen');
         }
 
+        const WebApp = (await import('@twa-dev/sdk')).default;
         WebApp.ready();
-        setIsLoading(false);
       } catch (error) {
-        console.error('Init error:', error);
-        setIsLoading(false);
+        addLog(`Error: ${error}`);
       }
     };
 
-    init();
-  }, []);
+    loadUser();
+  }, [userId]);
 
-  const selectCharacter = async (selectedCharacter: Character) => {
+  const selectCharacter = async (selected: Character) => {
     try {
-      console.log('Selecting character:', selectedCharacter);
-      await setDoc(doc(db, 'users', userId), {
+      addLog(`Selecting character: ${selected.name}`);
+      
+      const userData = {
         userId,
-        character: selectedCharacter
-      });
+        character: selected,
+        hasSelectedCharacter: true
+      };
 
-      setCharacter(selectedCharacter);
+      await setDoc(doc(db, 'users', userId), userData);
+      addLog('Character saved to Firebase');
+      
+      setCharacter(selected);
       setGameState('FARM');
+      
+      // Verify save
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      addLog(`Verification - Firebase data: ${JSON.stringify(userDoc.data())}`);
     } catch (error) {
-      console.error('Character selection error:', error);
+      addLog(`Error saving character: ${error}`);
     }
   };
-
-  if (isLoading) {
-    return <Container>Loading game...</Container>;
-  }
 
   return (
     <Container>
@@ -107,6 +125,15 @@ export default function Game() {
           <p>Your farm is ready.</p>
         </FarmScreen>
       )}
+
+      <LogPanel>
+        <LogHeader>Debug Logs</LogHeader>
+        <LogContent>
+          {logs.map((log, index) => (
+            <LogEntry key={index}>{log}</LogEntry>
+          ))}
+        </LogContent>
+      </LogPanel>
     </Container>
   );
 }
@@ -149,4 +176,35 @@ const FarmScreen = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+`;
+
+const LogPanel = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+  z-index: 1000;
+`;
+
+const LogHeader = styled.div`
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #4CAF50;
+`;
+
+const LogContent = styled.div`
+  display: flex;
+  flex-direction: column-reverse;
+`;
+
+const LogEntry = styled.div`
+  padding: 2px 0;
+  font-family: monospace;
+  text-align: left;
 `;
