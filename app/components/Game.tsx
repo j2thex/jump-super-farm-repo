@@ -135,11 +135,11 @@ export default function Game() {
 
   const plantCrop = async (slot: number) => {
     if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
-      const newCrops = [...crops, {
+      const newCrops: Crop[] = [...crops, {
         slot,
-        type: 'wheat',
+        type: 'wheat' as const,
         plantedAt: Date.now(),
-        stage: 0
+        stage: 0 as CropStage
       }];
       setCrops(newCrops);
       setSilver(silver - 2);
