@@ -122,11 +122,18 @@ export default function Game() {
     }
 
     try {
+      // Get the latest state directly
+      const currentCrops = crops;
+      const currentSilver = silver;
+
+      addLog(`Current state before save: ${currentCrops.length} crops, ${currentSilver} silver`);
+      addLog(`Crops data: ${JSON.stringify(currentCrops.map(c => c.slot))}`);
+
       const gameData = {
         userId,
         character,
-        silver,
-        crops: crops.map(crop => ({
+        silver: currentSilver,
+        crops: currentCrops.map(crop => ({
           ...crop,
           plantedAt: Number(crop.plantedAt),
           stage: Number(crop.stage)
@@ -134,9 +141,8 @@ export default function Game() {
         hasSelectedCharacter: true
       };
 
-      addLog(`Saving game state: ${crops.length} crops, ${silver} silver`);
       await setDoc(doc(db, 'users', userId), gameData);
-      addLog('Game state saved successfully');
+      addLog(`Saved state: ${currentCrops.length} crops, ${currentSilver} silver`);
     } catch (error: any) {
       addLog(`Save error: ${error.message}`);
     }
@@ -155,6 +161,8 @@ export default function Game() {
 
   const plantCrop = async (slot: number) => {
     if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
+      addLog(`Attempting to plant in slot ${slot}`);
+      
       const newCrops: Crop[] = [...crops, {
         slot,
         type: 'wheat' as const,
@@ -162,22 +170,36 @@ export default function Game() {
         stage: 0 as CropStage
       }];
       
+      // Update state
       setCrops(newCrops);
       setSilver(prev => prev - 2);
       
-      addLog(`Planting crop in slot ${slot}`);
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      addLog(`Planted crop in slot ${slot}. Total crops: ${newCrops.length}`);
       await saveGameState();
+    } else {
+      addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
     }
   };
 
   const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
+      addLog(`Harvesting crop from slot ${slot}`);
+      
+      // Update state
       setSilver(prev => prev + 5);
       setCrops(prev => prev.filter(c => c.slot !== slot));
       
-      addLog(`Harvesting crop from slot ${slot}`);
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await saveGameState();
+      addLog('Harvest complete');
+    } else {
+      addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
     }
   };
 
