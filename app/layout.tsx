@@ -13,7 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body style={{ 
+        margin: 0, 
+        padding: 0,
+        backgroundColor: 'var(--tg-theme-bg-color, #fff)',
+        color: 'var(--tg-theme-text-color, #000)'
+      }}>
         <StyledComponentsRegistry>
           {children}
         </StyledComponentsRegistry>

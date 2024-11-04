@@ -183,6 +183,10 @@ const GameContainer = styled('div')`
   margin: 0 auto;
   padding: 20px;
   text-align: center;
+  color: #333;
+  @media (prefers-color-scheme: dark) {
+    color: #fff;
+  }
 `;
 
 const StartScreen = styled.div`
@@ -200,6 +204,9 @@ const StartButton = styled.button`
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  &:hover {
+    background-color: #45a049;
+  }
 `;
 
 const CharacterSelect = styled.div`
@@ -219,6 +226,12 @@ const CharacterCard = styled.div`
   border: 2px solid #ddd;
   border-radius: 10px;
   cursor: pointer;
+  background: ${props => props.theme.mode === 'dark' ? '#333' : '#fff'};
+  
+  @media (prefers-color-scheme: dark) {
+    background: #333;
+    border-color: #555;
+  }
   
   .character-image {
     font-size: 3em;
@@ -242,6 +255,24 @@ const TopBar = styled.div`
   padding: 10px;
   background: #f5f5f5;
   border-radius: 5px;
+  
+  @media (prefers-color-scheme: dark) {
+    background: #333;
+    color: #fff;
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      
+      &:hover {
+        background: #45a049;
+      }
+    }
+  }
 `;
 
 const FarmGrid = styled.div`
@@ -262,12 +293,23 @@ const FarmSlot = styled.div`
   font-size: 2em;
   cursor: pointer;
   background: #DEB887;
+  
+  @media (prefers-color-scheme: dark) {
+    background: #5c4a3d;
+    border-color: #8B4513;
+  }
 `;
 
 const ResearchScreen = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  
+  @media (prefers-color-scheme: dark) {
+    h2 {
+      color: #fff;
+    }
+  }
 `;
 
 const ResearchList = styled.div`
@@ -278,11 +320,15 @@ const ResearchList = styled.div`
 
 const ResearchItem = styled('button')<ResearchItemProps>`
   padding: 10px;
-  background: ${props => props.disabled ? '#ccc' : '#4CAF50'};
+  background: ${props => props.disabled ? '#666' : '#4CAF50'};
   color: white;
   border: none;
   border-radius: 5px;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  
+  @media (prefers-color-scheme: dark) {
+    background: ${props => props.disabled ? '#444' : '#4CAF50'};
+  }
 `;
 
 const BackButton = styled.button`
@@ -292,4 +338,15 @@ const BackButton = styled.button`
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  
+  &:hover {
+    background: #555;
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    background: #444;
+    &:hover {
+      background: #333;
+    }
+  }
 `; 
