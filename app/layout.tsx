@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import StyledComponentsRegistry from './registry';
 
 export const metadata: Metadata = {
   title: 'Happy Farmer',
@@ -12,7 +13,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <StyledComponentsRegistry>
+          {children}
+        </StyledComponentsRegistry>
+      </body>
     </html>
   );
 }
