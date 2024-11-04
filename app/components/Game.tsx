@@ -185,11 +185,26 @@ export default function Game() {
       setCrops(newCrops);
       setSilver(prev => prev - 2);
       
-      // Wait a bit for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      addLog(`Planted crop in slot ${slot}. Total crops: ${newCrops.length}`);
-      await saveGameState();
+      // Save using the new crops array directly
+      try {
+        const gameData = {
+          userId,
+          character,
+          silver: silver - 2, // Use the new silver amount
+          crops: newCrops.map(crop => ({  // Use the new crops array
+            ...crop,
+            plantedAt: Number(crop.plantedAt),
+            stage: Number(crop.stage)
+          })),
+          hasSelectedCharacter: true
+        };
+
+        addLog(`Saving new state with crops: ${newCrops.map(c => c.slot).join(', ')}`);
+        await setDoc(doc(db, 'users', userId), gameData);
+        addLog(`Saved state with ${newCrops.length} crops`);
+      } catch (error: any) {
+        addLog(`Save error: ${error.message}`);
+      }
     } else {
       addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
     }
@@ -200,15 +215,33 @@ export default function Game() {
     if (crop && crop.stage === 5) {
       addLog(`Harvesting crop from slot ${slot}`);
       
+      const newCrops = crops.filter(c => c.slot !== slot);
+      const newSilver = silver + 5;
+      
       // Update state
-      setSilver(prev => prev + 5);
-      setCrops(prev => prev.filter(c => c.slot !== slot));
+      setCrops(newCrops);
+      setSilver(newSilver);
       
-      // Wait a bit for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      await saveGameState();
-      addLog('Harvest complete');
+      // Save using the new values directly
+      try {
+        const gameData = {
+          userId,
+          character,
+          silver: newSilver,
+          crops: newCrops.map(crop => ({
+            ...crop,
+            plantedAt: Number(crop.plantedAt),
+            stage: Number(crop.stage)
+          })),
+          hasSelectedCharacter: true
+        };
+
+        addLog(`Saving after harvest. Remaining crops: ${newCrops.map(c => c.slot).join(', ')}`);
+        await setDoc(doc(db, 'users', userId), gameData);
+        addLog(`Saved state with ${newCrops.length} crops`);
+      } catch (error: any) {
+        addLog(`Save error: ${error.message}`);
+      }
     } else {
       addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
     }
