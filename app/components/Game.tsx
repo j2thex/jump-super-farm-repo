@@ -143,11 +143,13 @@ export default function Game() {
         unlockedItems,
         firstTime: false
       };
-      log('Saving user data...');
-      await setDoc(doc(db, 'users', userId), userData, { merge: true });
-      log('Data saved successfully');
+      log('Saving user data -', JSON.stringify(userData));
+      
+      const userDocRef = doc(db, 'users', userId);
+      await setDoc(userDocRef, userData);
+      log('Save successful');
     } catch (error) {
-      log(`Error saving data: ${error}`);
+      log('Error saving data -', error);
     }
   };
 
@@ -159,43 +161,60 @@ export default function Game() {
         log('WebApp SDK loaded');
         
         const tgUser = WebApp.initDataUnsafe?.user;
-        log('Telegram user:', JSON.stringify(tgUser));
+        log('Telegram user -', JSON.stringify(tgUser));
         
         const userIdToUse = tgUser?.id?.toString() || 'test-user-123';
         setUserId(userIdToUse);
-        log('Using user ID:', userIdToUse);
+        log('Using user ID -', userIdToUse);
 
         const userDocRef = doc(db, 'users', userIdToUse);
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Found existing user data -', JSON.stringify(userData));
+          log('Raw user data from DB -', JSON.stringify(userData));
           
+          // Load character if it exists
           if (userData.character) {
+            log('Loading character -', JSON.stringify(userData.character));
             setSelectedCharacter(userData.character);
-            log('Loaded character -', userData.character.name);
+            // Set game state to FARM immediately if character exists
+            setGameState('FARM');
+          } else {
+            log('No character found, showing character select');
+            setGameState('CHARACTER_SELECT');
           }
           
-          if (typeof userData.silver === 'number') {
-            setSilver(userData.silver);
-            log('Loaded silver -', userData.silver);
+          // Load silver
+          const savedSilver = userData.silver;
+          if (typeof savedSilver === 'number') {
+            log('Loading silver -', savedSilver);
+            setSilver(savedSilver);
+          } else {
+            log('No valid silver found, using default');
           }
           
-          if (Array.isArray(userData.crops)) {
-            setCrops(userData.crops);
-            log('Loaded crops -', userData.crops.length);
+          // Load crops
+          const savedCrops = userData.crops;
+          if (Array.isArray(savedCrops)) {
+            log('Loading crops -', JSON.stringify(savedCrops));
+            setCrops(savedCrops);
+          } else {
+            log('No valid crops found, using empty array');
           }
           
-          if (Array.isArray(userData.unlockedItems)) {
-            setUnlockedItems(userData.unlockedItems);
-            log('Loaded unlocked items -', userData.unlockedItems.join(', '));
+          // Load unlocked items
+          const savedItems = userData.unlockedItems;
+          if (Array.isArray(savedItems)) {
+            log('Loading unlocked items -', JSON.stringify(savedItems));
+            setUnlockedItems(savedItems);
+          } else {
+            log('No valid unlocked items found, using empty array');
           }
           
-          setGameState(userData.character ? 'FARM' : 'CHARACTER_SELECT');
-          log('Set initial game state -', userData.character ? 'FARM' : 'CHARACTER_SELECT');
+          log('Data loading complete');
         } else {
-          log('Creating new user');
+          log('No existing user data, creating new user');
           const newUserData = {
             userId: userIdToUse,
             character: null,
@@ -210,7 +229,6 @@ export default function Game() {
         
         WebApp.ready();
         setLoading(false);
-        log('Initialization complete');
       } catch (error) {
         log('Error during initialization -', error);
         setLoading(false);
@@ -229,23 +247,23 @@ export default function Game() {
 
   // Update existing functions to save data
   const selectCharacter = async (character: Character) => {
-    log(`Selecting character: ${character.name}`);
+    log('Selecting character -', character.name);
     setSelectedCharacter(character);
     setGameState('FARM');
     
-    // Save immediately after character selection
     try {
-      await setDoc(doc(db, 'users', userId), {
+      const userData = {
         userId,
         character,
         silver,
         crops,
         unlockedItems,
         firstTime: false
-      }, { merge: true });
+      };
+      await setDoc(doc(db, 'users', userId), userData);
       log('Character selection saved');
     } catch (error) {
-      log(`Error saving character selection: ${error}`);
+      log('Error saving character selection -', error);
     }
   };
 
@@ -450,11 +468,14 @@ export default function Game() {
               <Label>Character:</Label>
               <Value>{selectedCharacter?.name || 'None'}</Value>
             </DebugItem>
+            <DebugItem>
+              <Button onClick={debugReload}>Force Reload Data</Button>
+            </DebugItem>
           </DebugGrid>
           <LogSection>
             <Label>Recent Logs:</Label>
             <LogContainer>
-              {debugLog.slice(-5).map((log, index) => (
+              {debugLog.map((log, index) => (
                 <LogEntry key={index}>{log}</LogEntry>
               ))}
             </LogContainer>
@@ -696,5 +717,19 @@ const LoadingScreen = styled.div`
   
   h2 {
     color: var(--tg-theme-text-color, #000);
+  }
+`;
+
+// Add new styled component for debug button
+const Button = styled.button`
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    background: #45a049;
   }
 `;
