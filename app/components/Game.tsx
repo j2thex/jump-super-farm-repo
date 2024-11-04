@@ -198,7 +198,25 @@ export default function Game() {
     }
   };
 
-  // Now we can use saveUserData in useEffect
+  // Add debug function to check Firebase data
+  const checkFirebaseData = async () => {
+    if (!userId) return;
+    
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        log('Current Firebase data:', JSON.stringify(userData, null, 2));
+        log('firstTime value:', userData.firstTime);
+        log('character value:', userData.character ? 'exists' : 'null');
+      }
+    } catch (error) {
+      log('Error checking Firebase:', error);
+    }
+  };
+
+  // Update initUser with stricter logic
   useEffect(() => {
     const initUser = async () => {
       try {
@@ -207,32 +225,29 @@ export default function Game() {
         
         const userIdToUse = WebApp.initDataUnsafe?.user?.id?.toString() || 'test-user-123';
         setUserId(userIdToUse);
-        log('Using user ID -', userIdToUse);
+        log('Using user ID:', userIdToUse);
 
         const userDocRef = doc(db, 'users', userIdToUse);
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Found existing user data, firstTime:', userData.firstTime);
-          
-          // Load all user data
-          setSelectedCharacter(userData.character || null);
-          setSilver(userData.silver || 10);
-          setCrops(userData.crops || []);
-          setUnlockedItems(userData.unlockedItems || []);
+          log('Firebase data loaded:', JSON.stringify(userData, null, 2));
 
-          // Check firstTime flag to determine game state
-          if (userData.firstTime === false) {
-            log('Returning user, going to FARM');
-            setGameState('FARM');
-          } else {
-            log('First time user, going to CHARACTER_SELECT');
+          // STRICT CHECK: Only show character select if explicitly firstTime: true
+          if (userData.firstTime === true) {
+            log('First time user, showing character select');
             setGameState('CHARACTER_SELECT');
+          } else {
+            log('Returning user, loading farm data');
+            setSelectedCharacter(userData.character);
+            setSilver(userData.silver || 10);
+            setCrops(userData.crops || []);
+            setUnlockedItems(userData.unlockedItems || []);
+            setGameState('FARM');
           }
         } else {
-          // New user, create their document
-          log('Creating new user');
+          log('No user data, creating new user');
           const newUserData = {
             userId: userIdToUse,
             character: null,
@@ -248,7 +263,7 @@ export default function Game() {
         WebApp.ready();
         setLoading(false);
       } catch (error) {
-        log('Error during initialization -', error);
+        log('Error:', error);
         setLoading(false);
       }
     };
@@ -263,30 +278,33 @@ export default function Game() {
     }
   }, [silver, crops.length, unlockedItems.length]);
 
-  // Update existing functions to save data
+  // Update character selection to force firstTime to false
   const selectCharacter = async (character: Character) => {
     try {
-      log('Selecting character -', character.name);
+      log('Selecting character:', character.name);
       
-      // Update local state
-      setSelectedCharacter(character);
-      setGameState('FARM');
-      
-      // Save to Firebase with firstTime: false
       const userData = {
         userId,
         character,
         silver,
         crops,
         unlockedItems,
-        firstTime: false // Explicitly set to false after character selection
+        firstTime: false // Explicitly set to false
       };
       
+      // Save first, then update state
       const userDocRef = doc(db, 'users', userId);
       await setDoc(userDocRef, userData);
-      log('Character selection saved, firstTime set to false');
+      log('Saved character selection, firstTime set to false');
+      
+      // Update local state after successful save
+      setSelectedCharacter(character);
+      setGameState('FARM');
+      
+      // Verify the save
+      await checkFirebaseData();
     } catch (error) {
-      log('Error saving character selection -', error);
+      log('Error saving character:', error);
     }
   };
 
@@ -493,6 +511,9 @@ export default function Game() {
             </DebugItem>
             <DebugItem>
               <Button onClick={debugReload}>Force Reload Data</Button>
+            </DebugItem>
+            <DebugItem>
+              <Button onClick={checkFirebaseData}>Check Firebase Data</Button>
             </DebugItem>
           </DebugGrid>
           <LogSection>
