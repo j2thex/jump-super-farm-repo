@@ -58,64 +58,55 @@ export default function Game() {
   const [debugLog, setDebugLog] = useState<string[]>([]);
 
   const log = (message: string) => {
-    setDebugLog(prev => [...prev, `${new Date().toISOString()}: ${message}`]);
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
   // Initialize user data
   useEffect(() => {
     const initUser = async () => {
       try {
-        // Dynamically import WebApp
         const WebApp = (await import('@twa-dev/sdk')).default;
+        log('WebApp SDK loaded');
         
-        // Get Telegram user ID
         const tgUser = WebApp.initDataUnsafe?.user;
         log(`Telegram user: ${JSON.stringify(tgUser)}`);
+        
+        // For testing, use a default ID if no Telegram user
+        const userIdToUse = tgUser?.id?.toString() || 'test-user-123';
+        setUserId(userIdToUse);
+        log(`Using user ID: ${userIdToUse}`);
 
-        if (!tgUser?.id) {
-          console.error('No Telegram user ID found');
-          const defaultId = '12345';
-          setUserId(defaultId);
-          console.log('Using default ID:', defaultId);
-        } else {
-          const userId = tgUser.id.toString();
-          setUserId(userId);
-          console.log('Set user ID:', userId);
-        }
-
-        // Get user data from Firestore
-        const userDocRef = doc(db, 'users', userId || '12345');
+        const userDocRef = doc(db, 'users', userIdToUse);
         const userDoc = await getDoc(userDocRef);
-        console.log('Firestore doc:', userDoc.data());
         
         if (userDoc.exists()) {
-          // User exists, load their data
-          const userData = userDoc.data() as UserData;
-          console.log('Loading user data:', userData);
+          const userData = userDoc.data();
+          log('Found existing user data');
           setSelectedCharacter(userData.character);
           setSilver(userData.silver);
-          setCrops(userData.crops);
-          setUnlockedItems(userData.unlockedItems);
-          setGameState(userData.firstTime ? 'CHARACTER_SELECT' : 'FARM');
+          setCrops(userData.crops || []);
+          setUnlockedItems(userData.unlockedItems || []);
+          setGameState(userData.character ? 'FARM' : 'CHARACTER_SELECT');
         } else {
-          // New user, create their document
-          const newUserData: UserData = {
-            userId: userId || '12345',
+          log('Creating new user');
+          const newUserData = {
+            userId: userIdToUse,
             character: null,
             silver: 10,
             crops: [],
             unlockedItems: [],
             firstTime: true
           };
-          console.log('Creating new user:', newUserData);
           await setDoc(userDocRef, newUserData);
           setGameState('CHARACTER_SELECT');
         }
         
         WebApp.ready();
         setLoading(false);
+        log('Initialization complete');
       } catch (error) {
-        console.error('Error initializing user:', error);
+        log(`Error during initialization: ${error}`);
         setLoading(false);
       }
     };
@@ -340,15 +331,37 @@ export default function Game() {
 
       {showDebug && (
         <DebugPanel>
-          <h3>Debug Log</h3>
-          <div>User ID: {userId}</div>
-          <div>Silver: {silver}</div>
-          <div>Crops: {crops.length}</div>
-          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
-            {debugLog.map((log, i) => (
-              <div key={i}>{log}</div>
-            ))}
-          </div>
+          <DebugHeader>Debug Panel</DebugHeader>
+          <DebugGrid>
+            <DebugItem>
+              <Label>User ID:</Label>
+              <Value>{userId || 'Not set'}</Value>
+            </DebugItem>
+            <DebugItem>
+              <Label>Game State:</Label>
+              <Value>{gameState}</Value>
+            </DebugItem>
+            <DebugItem>
+              <Label>Silver:</Label>
+              <Value>{silver}</Value>
+            </DebugItem>
+            <DebugItem>
+              <Label>Crops:</Label>
+              <Value>{crops.length}</Value>
+            </DebugItem>
+            <DebugItem>
+              <Label>Character:</Label>
+              <Value>{selectedCharacter?.name || 'None'}</Value>
+            </DebugItem>
+          </DebugGrid>
+          <LogSection>
+            <Label>Recent Logs:</Label>
+            <LogContainer>
+              {debugLog.slice(-5).map((log, index) => (
+                <LogEntry key={index}>{log}</LogEntry>
+              ))}
+            </LogContainer>
+          </LogSection>
         </DebugPanel>
       )}
     </GameContainer>
