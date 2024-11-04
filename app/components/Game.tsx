@@ -27,6 +27,17 @@ const characters: Character[] = [
   { id: 3, name: 'Farmer Jack', image: '🧑‍🌾' },
 ];
 
+// Add this helper function at the top level
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error('Failed to copy:', err);
+    return false;
+  }
+};
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('CHARACTER_SELECT');
   const [userId, setUserId] = useState<string>('');
@@ -256,7 +267,18 @@ export default function Game() {
       )}
 
       <LogPanel>
-        <LogHeader>Debug Logs</LogHeader>
+        <LogHeader>
+          Debug Logs
+          <CopyButton 
+            onClick={() => {
+              const logText = logs.join('\n');
+              copyToClipboard(logText)
+                .then(success => addLog(success ? 'Logs copied!' : 'Failed to copy logs'));
+            }}
+          >
+            📋 Copy Logs
+          </CopyButton>
+        </LogHeader>
         <LogContent>
           {logs.map((log, index) => (
             <LogEntry key={index}>{log}</LogEntry>
@@ -325,6 +347,10 @@ const LogHeader = styled.div`
   font-weight: bold;
   margin-bottom: 5px;
   color: #4CAF50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
 `;
 
 const LogContent = styled.div`
@@ -379,4 +405,23 @@ const Timer = styled.div`
   color: white;
   padding: 2px 6px;
   border-radius: 10px;
+`;
+
+const CopyButton = styled.button`
+  float: right;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  
+  &:hover {
+    background: #45a049;
+  }
+  
+  &:active {
+    background: #3d8b40;
+  }
 `;
