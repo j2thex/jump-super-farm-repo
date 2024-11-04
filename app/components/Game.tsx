@@ -127,6 +127,51 @@ export default function Game() {
     setDebugLog(prev => [...prev, `[${timestamp}] ${messages.join(' ')}`]);
   };
 
+  // Define debugReload before using it in JSX
+  const debugReload = async () => {
+    if (!userId) {
+      log('No user ID available for debug reload');
+      return;
+    }
+    
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        log('Debug: Current DB data -', JSON.stringify(userData));
+        
+        // Attempt to reload the data
+        if (userData.character) {
+          setSelectedCharacter(userData.character);
+          log('Debug: Reloaded character');
+        }
+        
+        if (typeof userData.silver === 'number') {
+          setSilver(userData.silver);
+          log('Debug: Reloaded silver -', userData.silver);
+        }
+        
+        if (Array.isArray(userData.crops)) {
+          setCrops(userData.crops);
+          log('Debug: Reloaded crops -', userData.crops.length);
+        }
+        
+        if (Array.isArray(userData.unlockedItems)) {
+          setUnlockedItems(userData.unlockedItems);
+          log('Debug: Reloaded items -', userData.unlockedItems);
+        }
+        
+        setGameState(userData.character ? 'FARM' : 'CHARACTER_SELECT');
+        log('Debug: Reload complete');
+      } else {
+        log('Debug: No data found in DB');
+      }
+    } catch (error) {
+      log('Debug: Error loading data -', error);
+    }
+  };
+
   // Define saveUserData before using it in useEffect
   const saveUserData = async () => {
     if (!userId) {
