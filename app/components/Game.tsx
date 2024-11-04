@@ -205,10 +205,7 @@ export default function Game() {
         const WebApp = (await import('@twa-dev/sdk')).default;
         log('WebApp SDK loaded');
         
-        const tgUser = WebApp.initDataUnsafe?.user;
-        log('Telegram user -', JSON.stringify(tgUser));
-        
-        const userIdToUse = tgUser?.id?.toString() || 'test-user-123';
+        const userIdToUse = WebApp.initDataUnsafe?.user?.id?.toString() || 'test-user-123';
         setUserId(userIdToUse);
         log('Using user ID -', userIdToUse);
 
@@ -217,49 +214,24 @@ export default function Game() {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Raw user data from DB -', JSON.stringify(userData));
+          log('Found existing user data');
           
-          // Load character if it exists
+          // If user has already selected a character, go straight to FARM
           if (userData.character) {
-            log('Loading character -', JSON.stringify(userData.character));
+            log('Character found, loading farm');
             setSelectedCharacter(userData.character);
-            // Set game state to FARM immediately if character exists
+            setSilver(userData.silver || 10);
+            setCrops(userData.crops || []);
+            setUnlockedItems(userData.unlockedItems || []);
             setGameState('FARM');
           } else {
+            // If no character but user exists, they need to select one
             log('No character found, showing character select');
             setGameState('CHARACTER_SELECT');
           }
-          
-          // Load silver
-          const savedSilver = userData.silver;
-          if (typeof savedSilver === 'number') {
-            log('Loading silver -', savedSilver);
-            setSilver(savedSilver);
-          } else {
-            log('No valid silver found, using default');
-          }
-          
-          // Load crops
-          const savedCrops = userData.crops;
-          if (Array.isArray(savedCrops)) {
-            log('Loading crops -', JSON.stringify(savedCrops));
-            setCrops(savedCrops);
-          } else {
-            log('No valid crops found, using empty array');
-          }
-          
-          // Load unlocked items
-          const savedItems = userData.unlockedItems;
-          if (Array.isArray(savedItems)) {
-            log('Loading unlocked items -', JSON.stringify(savedItems));
-            setUnlockedItems(savedItems);
-          } else {
-            log('No valid unlocked items found, using empty array');
-          }
-          
-          log('Data loading complete');
         } else {
-          log('No existing user data, creating new user');
+          // New user, create their document
+          log('Creating new user');
           const newUserData = {
             userId: userIdToUse,
             character: null,
@@ -292,19 +264,23 @@ export default function Game() {
 
   // Update existing functions to save data
   const selectCharacter = async (character: Character) => {
-    log('Selecting character -', character.name);
-    setSelectedCharacter(character);
-    setGameState('FARM');
-    
     try {
+      log('Selecting character -', character.name);
+      
+      // Update local state
+      setSelectedCharacter(character);
+      setGameState('FARM');
+      
+      // Save to Firebase with character and firstTime: false
       const userData = {
         userId,
         character,
         silver,
         crops,
         unlockedItems,
-        firstTime: false
+        firstTime: false // Mark that character has been selected
       };
+      
       await setDoc(doc(db, 'users', userId), userData);
       log('Character selection saved');
     } catch (error) {
