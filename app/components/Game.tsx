@@ -44,31 +44,55 @@ export default function Game() {
   // Add log function
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        addLog('Loading user data...');
+        addLog('Starting user data load...');
+        addLog(`Using user ID: ${userId}`);
+        
         const userRef = doc(db, 'users', userId);
+        addLog('Attempting to read from Firebase...');
+        
         const userDoc = await getDoc(userRef);
-        const userData = userDoc.data();
-
-        addLog(`Firebase data: ${JSON.stringify(userData)}`);
-
-        if (userDoc.exists() && userData?.character) {
-          addLog(`Found character: ${userData.character.name}`);
-          setCharacter(userData.character);
-          setGameState('FARM');
+        
+        if (!userDoc.exists()) {
+          addLog('No existing user document found');
+          // Create new user
+          const newUserData = {
+            userId,
+            character: null,
+            hasSelectedCharacter: false
+          };
+          
+          addLog('Creating new user document...');
+          await setDoc(userRef, newUserData);
+          addLog('New user document created');
+          
         } else {
-          addLog('No character found, showing selection screen');
+          const userData = userDoc.data();
+          addLog(`Found user data: ${JSON.stringify(userData, null, 2)}`);
+          
+          if (userData.character) {
+            addLog(`Loading character: ${userData.character.name}`);
+            setCharacter(userData.character);
+            setGameState('FARM');
+          } else {
+            addLog('No character found, staying on selection screen');
+          }
         }
 
         const WebApp = (await import('@twa-dev/sdk')).default;
         WebApp.ready();
-      } catch (error) {
-        addLog(`Error: ${error}`);
+      } catch (error: any) {
+        addLog('ERROR DETAILS:');
+        addLog(`Code: ${error.code}`);
+        addLog(`Message: ${error.message}`);
+        if (error.stack) {
+          addLog(`Stack: ${error.stack.split('\n')[0]}`);
+        }
       }
     };
 
