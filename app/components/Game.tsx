@@ -144,7 +144,7 @@ export default function Game() {
         firstTime: false
       };
       log('Saving user data...');
-      await setDoc(doc(db, 'users', userId), userData);
+      await setDoc(doc(db, 'users', userId), userData, { merge: true });
       log('Data saved successfully');
     } catch (error) {
       log(`Error saving data: ${error}`);
@@ -170,12 +170,31 @@ export default function Game() {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Found existing user data');
-          setSelectedCharacter(userData.character);
-          setSilver(userData.silver);
-          setCrops(userData.crops || []);
-          setUnlockedItems(userData.unlockedItems || []);
+          log('Found existing user data:', userData);
+          
+          if (userData.character) {
+            setSelectedCharacter(userData.character);
+            log('Loaded character:', userData.character.name);
+          }
+          
+          if (typeof userData.silver === 'number') {
+            setSilver(userData.silver);
+            log('Loaded silver:', userData.silver);
+          }
+          
+          if (Array.isArray(userData.crops)) {
+            setCrops(userData.crops);
+            log('Loaded crops:', userData.crops.length);
+          }
+          
+          if (Array.isArray(userData.unlockedItems)) {
+            setUnlockedItems(userData.unlockedItems);
+            log('Loaded unlocked items:', userData.unlockedItems);
+          }
+          
+          // Set game state based on whether character exists
           setGameState(userData.character ? 'FARM' : 'CHARACTER_SELECT');
+          log('Set initial game state:', userData.character ? 'FARM' : 'CHARACTER_SELECT');
         } else {
           log('Creating new user');
           const newUserData = {
@@ -200,20 +219,35 @@ export default function Game() {
     };
 
     initUser();
-  }, []);  // Remove dependencies to avoid circular reference
+  }, []);
 
   // Update user data whenever important state changes
   useEffect(() => {
-    if (!loading) {
+    if (!loading && userId) {
       saveUserData();
     }
-  }, [silver, crops, unlockedItems, selectedCharacter]);
+  }, [silver, crops.length, unlockedItems.length]);
 
   // Update existing functions to save data
   const selectCharacter = async (character: Character) => {
+    log(`Selecting character: ${character.name}`);
     setSelectedCharacter(character);
     setGameState('FARM');
-    await saveUserData();
+    
+    // Save immediately after character selection
+    try {
+      await setDoc(doc(db, 'users', userId), {
+        userId,
+        character,
+        silver,
+        crops,
+        unlockedItems,
+        firstTime: false
+      }, { merge: true });
+      log('Character selection saved');
+    } catch (error) {
+      log(`Error saving character selection: ${error}`);
+    }
   };
 
   const plantCrop = async (slot: number) => {
@@ -224,7 +258,7 @@ export default function Game() {
         plantedAt: Date.now(),
         stage: 0 as CropStage
       }];
-      console.log('Planting crop:', newCrops);
+      log(`Planting crop in slot ${slot}`);
       setCrops(newCrops);
       setSilver(silver - 2);
       await saveUserData();
@@ -274,7 +308,7 @@ export default function Game() {
   const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
-      console.log('Harvesting crop:', crop);
+      log(`Harvesting crop from slot ${slot}`);
       setSilver(silver + 5);
       setCrops(crops.filter(c => c.slot !== slot));
       await saveUserData();
