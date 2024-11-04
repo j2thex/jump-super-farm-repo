@@ -65,20 +65,28 @@ export default function Game() {
         
         // Get Telegram user ID
         const tgUser = WebApp.initDataUnsafe?.user;
+        console.log('Telegram user:', tgUser);
+
         if (!tgUser?.id) {
           console.error('No Telegram user ID found');
-          return;
+          const defaultId = '12345';
+          setUserId(defaultId);
+          console.log('Using default ID:', defaultId);
+        } else {
+          const userId = tgUser.id.toString();
+          setUserId(userId);
+          console.log('Set user ID:', userId);
         }
 
-        const userId = tgUser.id.toString();
-        setUserId(userId);
-
         // Get user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', userId));
+        const userDocRef = doc(db, 'users', userId || '12345');
+        const userDoc = await getDoc(userDocRef);
+        console.log('Firestore doc:', userDoc.data());
         
         if (userDoc.exists()) {
           // User exists, load their data
           const userData = userDoc.data() as UserData;
+          console.log('Loading user data:', userData);
           setSelectedCharacter(userData.character);
           setSilver(userData.silver);
           setCrops(userData.crops);
@@ -87,18 +95,18 @@ export default function Game() {
         } else {
           // New user, create their document
           const newUserData: UserData = {
-            userId,
+            userId: userId || '12345',
             character: null,
             silver: 10,
             crops: [],
             unlockedItems: [],
             firstTime: true
           };
-          await setDoc(doc(db, 'users', userId), newUserData);
+          console.log('Creating new user:', newUserData);
+          await setDoc(userDocRef, newUserData);
           setGameState('CHARACTER_SELECT');
         }
         
-        // Initialize WebApp
         WebApp.ready();
         setLoading(false);
       } catch (error) {
@@ -112,7 +120,10 @@ export default function Game() {
 
   // Save user data when it changes
   const saveUserData = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('No user ID, skipping save');
+      return;
+    }
 
     const userData: UserData = {
       userId,
@@ -124,7 +135,9 @@ export default function Game() {
     };
 
     try {
+      console.log('Saving user data:', userData);
       await updateDoc(doc(db, 'users', userId), userData);
+      console.log('Save successful');
     } catch (error) {
       console.error('Error saving user data:', error);
     }
@@ -152,8 +165,10 @@ export default function Game() {
         plantedAt: Date.now(),
         stage: 0 as CropStage
       }];
+      console.log('Planting crop:', newCrops);
       setCrops(newCrops);
       setSilver(silver - 2);
+      await saveUserData();
     }
   };
 
@@ -200,8 +215,10 @@ export default function Game() {
   const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
+      console.log('Harvesting crop:', crop);
       setSilver(silver + 5);
       setCrops(crops.filter(c => c.slot !== slot));
+      await saveUserData();
     }
   };
 
