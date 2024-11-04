@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import WebApp from '@twa-dev/sdk';
 import styled from 'styled-components';
 
 // Game states
@@ -25,6 +24,11 @@ type Crop = {
   lastWatered?: number;
 };
 
+// Props type for ResearchItem
+interface ResearchItemProps {
+  disabled?: boolean;
+}
+
 const characters: Character[] = [
   { id: 1, name: 'Farmer John', image: '👨‍🌾' },
   { id: 2, name: 'Farmer Jane', image: '👩‍🌾' },
@@ -39,7 +43,13 @@ export default function Home() {
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
 
   useEffect(() => {
-    WebApp.ready();
+    // Import WebApp dynamically to avoid SSR issues
+    const initWebApp = async () => {
+      const WebApp = (await import('@twa-dev/sdk')).default;
+      WebApp.ready();
+    };
+    
+    initWebApp().catch(console.error);
   }, []);
 
   const startGame = () => {
@@ -166,7 +176,7 @@ function getCropEmoji(stage: CropStage): string {
   return stages[stage];
 }
 
-// Styled components
+// Styled components with fixed TypeScript errors
 const GameContainer = styled.div`
   max-width: 600px;
   margin: 0 auto;
@@ -265,13 +275,13 @@ const ResearchList = styled.div`
   gap: 10px;
 `;
 
-const ResearchItem = styled.button<{ disabled?: boolean }>`
+const ResearchItem = styled.button<ResearchItemProps>`
   padding: 10px;
-  background: ${props => props.disabled ? '#ccc' : '#4CAF50'};
+  background: ${(props: ResearchItemProps) => props.disabled ? '#ccc' : '#4CAF50'};
   color: white;
   border: none;
   border-radius: 5px;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${(props: ResearchItemProps) => props.disabled ? 'not-allowed' : 'pointer'};
 `;
 
 const BackButton = styled.button`
