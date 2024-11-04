@@ -5,7 +5,7 @@ import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Basic types
-type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM';
+type GameState = 'CHARACTER_SELECT' | 'FARM';
 
 type Character = {
   id: number;
@@ -20,45 +20,40 @@ const characters: Character[] = [
 ];
 
 export default function Game() {
-  // Basic state
-  const [gameState, setGameState] = useState<GameState>('START');
+  const [gameState, setGameState] = useState<GameState>('CHARACTER_SELECT');
   const [userId, setUserId] = useState<string>('');
   const [character, setCharacter] = useState<Character | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize game
   useEffect(() => {
     const init = async () => {
       try {
-        // Get Telegram WebApp
         const WebApp = (await import('@twa-dev/sdk')).default;
-        const testUserId = 'test123'; // For development
+        const testUserId = 'test123';
         setUserId(testUserId);
 
-        // Check if user exists
         const userRef = doc(db, 'users', testUserId);
         const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
-          // User exists, load their data
           const userData = userDoc.data();
+          console.log('Loaded user data:', userData);
+          
           if (userData.character) {
+            console.log('Found character:', userData.character);
             setCharacter(userData.character);
             setGameState('FARM');
-          } else {
-            setGameState('CHARACTER_SELECT');
           }
         } else {
-          // New user, create document
+          console.log('Creating new user');
           await setDoc(userRef, {
             userId: testUserId,
             character: null
           });
-          setGameState('CHARACTER_SELECT');
         }
 
-        setIsLoading(false);
         WebApp.ready();
+        setIsLoading(false);
       } catch (error) {
         console.error('Init error:', error);
         setIsLoading(false);
@@ -68,16 +63,14 @@ export default function Game() {
     init();
   }, []);
 
-  // Handle character selection
   const selectCharacter = async (selectedCharacter: Character) => {
     try {
-      // Update Firebase
+      console.log('Selecting character:', selectedCharacter);
       await setDoc(doc(db, 'users', userId), {
         userId,
         character: selectedCharacter
       });
 
-      // Update local state
       setCharacter(selectedCharacter);
       setGameState('FARM');
     } catch (error) {
@@ -86,13 +79,11 @@ export default function Game() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Container>Loading game...</Container>;
   }
 
   return (
     <Container>
-      {gameState === 'START' && <div>Loading game...</div>}
-
       {gameState === 'CHARACTER_SELECT' && (
         <CharacterSelect>
           <h2>Choose Your Character</h2>
@@ -120,7 +111,6 @@ export default function Game() {
   );
 }
 
-// Styled components
 const Container = styled.div`
   max-width: 600px;
   margin: 0 auto;
