@@ -55,6 +55,11 @@ export default function Game() {
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const log = (message: string) => {
+    setDebugLog(prev => [...prev, `${new Date().toISOString()}: ${message}`]);
+  };
 
   // Initialize user data
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function Game() {
         
         // Get Telegram user ID
         const tgUser = WebApp.initDataUnsafe?.user;
-        console.log('Telegram user:', tgUser);
+        log(`Telegram user: ${JSON.stringify(tgUser)}`);
 
         if (!tgUser?.id) {
           console.error('No Telegram user ID found');
@@ -121,25 +126,24 @@ export default function Game() {
   // Save user data when it changes
   const saveUserData = async () => {
     if (!userId) {
-      console.log('No user ID, skipping save');
+      log('No user ID, skipping save');
       return;
     }
 
-    const userData: UserData = {
-      userId,
-      character: selectedCharacter,
-      silver,
-      crops,
-      unlockedItems,
-      firstTime: false
-    };
-
     try {
-      console.log('Saving user data:', userData);
-      await updateDoc(doc(db, 'users', userId), userData);
-      console.log('Save successful');
+      const userData: UserData = {
+        userId,
+        character: selectedCharacter,
+        silver,
+        crops,
+        unlockedItems,
+        firstTime: false
+      };
+      
+      await setDoc(doc(db, 'users', userId), userData);
+      log('Data saved successfully');
     } catch (error) {
-      console.error('Error saving user data:', error);
+      log(`Error saving: ${error}`);
     }
   };
 
@@ -226,6 +230,8 @@ export default function Game() {
   const startGame = () => {
     setGameState('CHARACTER_SELECT');
   };
+
+  const showDebug = process.env.NODE_ENV === 'development';
 
   if (loading) {
     return (
@@ -330,6 +336,20 @@ export default function Game() {
             Back to Farm
           </BackButton>
         </MarketScreen>
+      )}
+
+      {showDebug && (
+        <DebugPanel>
+          <h3>Debug Log</h3>
+          <div>User ID: {userId}</div>
+          <div>Silver: {silver}</div>
+          <div>Crops: {crops.length}</div>
+          <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+            {debugLog.map((log, i) => (
+              <div key={i}>{log}</div>
+            ))}
+          </div>
+        </DebugPanel>
       )}
     </GameContainer>
   );
@@ -567,4 +587,18 @@ const LoadingScreen = styled.div`
   h2 {
     color: var(--tg-theme-text-color, #000);
   }
+`;
+
+const DebugPanel = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
 `; 
