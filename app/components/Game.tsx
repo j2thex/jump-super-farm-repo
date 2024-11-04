@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-// Basic types
 type GameState = 'CHARACTER_SELECT' | 'FARM';
 
 type Character = {
@@ -13,115 +12,155 @@ type Character = {
   image: string;
 };
 
+type CropStage = 0 | 1 | 2 | 3 | 4 | 5;
+
+type Crop = {
+  slot: number;
+  type: 'wheat';
+  plantedAt: number;
+  stage: CropStage;
+};
+
 const characters: Character[] = [
   { id: 1, name: 'Farmer John', image: '👨‍🌾' },
   { id: 2, name: 'Farmer Jane', image: '👩‍🌾' },
   { id: 3, name: 'Farmer Jack', image: '🧑‍🌾' },
 ];
 
-// Debug component to show current state
-const DebugPanel = ({ state }: { state: any }) => (
-  <div style={{ 
-    position: 'fixed', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    background: 'rgba(0,0,0,0.8)', 
-    color: 'white', 
-    padding: '10px',
-    fontSize: '12px'
-  }}>
-    <pre>{JSON.stringify(state, null, 2)}</pre>
-  </div>
-);
-
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('CHARACTER_SELECT');
-  const [userId, setUserId] = useState<string>('test123');
+  const [userId, setUserId] = useState<string>('');
   const [character, setCharacter] = useState<Character | null>(null);
+  const [silver, setSilver] = useState(10);
+  const [crops, setCrops] = useState<Crop[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
 
-  // Add log function
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
+  // Load user data
   useEffect(() => {
     const loadUser = async () => {
       try {
-        addLog('Starting user data load...');
-        addLog(`Using user ID: ${userId}`);
+        const WebApp = (await import('@twa-dev/sdk')).default;
         
-        const userRef = doc(db, 'users', userId);
-        addLog('Attempting to read from Firebase...');
+        // Get Telegram user ID
+        const tgUser = WebApp.initDataUnsafe?.user;
+        const telegramId = tgUser?.id?.toString();
         
+        if (!telegramId) {
+          addLog('No Telegram ID found');
+          return;
+        }
+
+        addLog(`Using Telegram ID: ${telegramId}`);
+        setUserId(telegramId);
+        
+        const userRef = doc(db, 'users', telegramId);
         const userDoc = await getDoc(userRef);
         
         if (!userDoc.exists()) {
-          addLog('No existing user document found');
-          // Create new user
+          addLog('Creating new user...');
           const newUserData = {
-            userId,
+            userId: telegramId,
             character: null,
+            silver: 10,
+            crops: [],
             hasSelectedCharacter: false
           };
-          
-          addLog('Creating new user document...');
           await setDoc(userRef, newUserData);
-          addLog('New user document created');
-          
         } else {
           const userData = userDoc.data();
-          addLog(`Found user data: ${JSON.stringify(userData, null, 2)}`);
+          addLog('Found existing user');
           
           if (userData.character) {
-            addLog(`Loading character: ${userData.character.name}`);
             setCharacter(userData.character);
+            setSilver(userData.silver || 10);
+            setCrops(userData.crops || []);
             setGameState('FARM');
-          } else {
-            addLog('No character found, staying on selection screen');
           }
         }
 
-        const WebApp = (await import('@twa-dev/sdk')).default;
         WebApp.ready();
       } catch (error: any) {
-        addLog('ERROR DETAILS:');
-        addLog(`Code: ${error.code}`);
-        addLog(`Message: ${error.message}`);
-        if (error.stack) {
-          addLog(`Stack: ${error.stack.split('\n')[0]}`);
-        }
+        addLog(`Error: ${error.message}`);
       }
     };
 
     loadUser();
-  }, [userId]);
+  }, []);
+
+  // Update crop growth
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCrops(currentCrops => 
+        currentCrops.map(crop => {
+          const minutesGrown = (Date.now() - crop.plantedAt) / (60 * 1000);
+          const newStage = Math.min(5, Math.floor(minutesGrown / 2.4)) as CropStage;
+          return { ...crop, stage: newStage };
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const saveGameState = async () => {
+    try {
+      await setDoc(doc(db, 'users', userId), {
+        userId,
+        character,
+        silver,
+        crops,
+        hasSelectedCharacter: true
+      });
+      addLog('Game state saved');
+    } catch (error: any) {
+      addLog(`Save error: ${error.message}`);
+    }
+  };
 
   const selectCharacter = async (selected: Character) => {
     try {
-      addLog(`Selecting character: ${selected.name}`);
-      
-      const userData = {
-        userId,
-        character: selected,
-        hasSelectedCharacter: true
-      };
-
-      await setDoc(doc(db, 'users', userId), userData);
-      addLog('Character saved to Firebase');
-      
       setCharacter(selected);
       setGameState('FARM');
-      
-      // Verify save
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
-      addLog(`Verification - Firebase data: ${JSON.stringify(userDoc.data())}`);
-    } catch (error) {
-      addLog(`Error saving character: ${error}`);
+      await saveGameState();
+      addLog(`Selected ${selected.name}`);
+    } catch (error: any) {
+      addLog(`Error selecting character: ${error.message}`);
     }
+  };
+
+  const plantCrop = async (slot: number) => {
+    if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
+      const newCrops = [...crops, {
+        slot,
+        type: 'wheat',
+        plantedAt: Date.now(),
+        stage: 0
+      }];
+      setCrops(newCrops);
+      setSilver(silver - 2);
+      await saveGameState();
+      addLog(`Planted crop in slot ${slot}`);
+    }
+  };
+
+  const harvestCrop = async (slot: number) => {
+    const crop = crops.find(c => c.slot === slot);
+    if (crop && crop.stage === 5) {
+      setSilver(silver + 5);
+      setCrops(crops.filter(c => c.slot !== slot));
+      await saveGameState();
+      addLog(`Harvested crop from slot ${slot}`);
+    }
+  };
+
+  const getCropEmoji = (stage: CropStage): string => {
+    const stages = ['🌱', '🌿', '🌾', '🌾', '🌾', '🌾'];
+    return stages[stage];
   };
 
   return (
@@ -145,8 +184,29 @@ export default function Game() {
 
       {gameState === 'FARM' && (
         <FarmScreen>
-          <h2>Welcome, {character?.name}!</h2>
-          <p>Your farm is ready.</p>
+          <Header>
+            <h2>Welcome, {character?.name}!</h2>
+            <div>Silver: {silver}</div>
+          </Header>
+          <FarmGrid>
+            {Array.from({ length: 6 }).map((_, index) => {
+              const crop = crops.find(c => c.slot === index);
+              return (
+                <FarmSlot 
+                  key={index}
+                  onClick={() => crop?.stage === 5 ? harvestCrop(index) : plantCrop(index)}
+                  isReady={crop?.stage === 5}
+                >
+                  {crop ? getCropEmoji(crop.stage) : '🟫'}
+                  {crop && (
+                    <Timer>
+                      {Math.max(0, Math.ceil(12 - (Date.now() - crop.plantedAt) / 60000))}m
+                    </Timer>
+                  )}
+                </FarmSlot>
+              );
+            })}
+          </FarmGrid>
         </FarmScreen>
       )}
 
@@ -231,4 +291,47 @@ const LogEntry = styled.div`
   padding: 2px 0;
   font-family: monospace;
   text-align: left;
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  margin-bottom: 20px;
+`;
+
+const FarmGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 300px;
+  margin: 0 auto;
+`;
+
+const FarmSlot = styled.div<{ isReady?: boolean }>`
+  width: 80px;
+  height: 80px;
+  border: 2px solid ${props => props.isReady ? '#4CAF50' : '#8B4513'};
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 2em;
+  cursor: pointer;
+  background: ${props => props.isReady ? '#a5d6a7' : '#DEB887'};
+  position: relative;
+`;
+
+const Timer = styled.div`
+  position: absolute;
+  bottom: 5px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
 `;
