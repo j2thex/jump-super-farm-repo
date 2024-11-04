@@ -214,19 +214,20 @@ export default function Game() {
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Found existing user data');
+          log('Found existing user data, firstTime:', userData.firstTime);
           
-          // If user has already selected a character, go straight to FARM
-          if (userData.character) {
-            log('Character found, loading farm');
-            setSelectedCharacter(userData.character);
-            setSilver(userData.silver || 10);
-            setCrops(userData.crops || []);
-            setUnlockedItems(userData.unlockedItems || []);
+          // Load all user data
+          setSelectedCharacter(userData.character || null);
+          setSilver(userData.silver || 10);
+          setCrops(userData.crops || []);
+          setUnlockedItems(userData.unlockedItems || []);
+
+          // Check firstTime flag to determine game state
+          if (userData.firstTime === false) {
+            log('Returning user, going to FARM');
             setGameState('FARM');
           } else {
-            // If no character but user exists, they need to select one
-            log('No character found, showing character select');
+            log('First time user, going to CHARACTER_SELECT');
             setGameState('CHARACTER_SELECT');
           }
         } else {
@@ -271,18 +272,19 @@ export default function Game() {
       setSelectedCharacter(character);
       setGameState('FARM');
       
-      // Save to Firebase with character and firstTime: false
+      // Save to Firebase with firstTime: false
       const userData = {
         userId,
         character,
         silver,
         crops,
         unlockedItems,
-        firstTime: false // Mark that character has been selected
+        firstTime: false // Explicitly set to false after character selection
       };
       
-      await setDoc(doc(db, 'users', userId), userData);
-      log('Character selection saved');
+      const userDocRef = doc(db, 'users', userId);
+      await setDoc(userDocRef, userData);
+      log('Character selection saved, firstTime set to false');
     } catch (error) {
       log('Error saving character selection -', error);
     }
