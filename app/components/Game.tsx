@@ -77,8 +77,16 @@ export default function Game() {
           
           if (userData.character) {
             setCharacter(userData.character);
-            setSilver(userData.silver || 10);
-            setCrops(userData.crops || []);
+            setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
+            if (Array.isArray(userData.crops)) {
+              const loadedCrops = userData.crops.map(crop => ({
+                ...crop,
+                plantedAt: Number(crop.plantedAt),
+                stage: Number(crop.stage) as CropStage
+              }));
+              setCrops(loadedCrops);
+              addLog(`Loaded ${loadedCrops.length} crops`);
+            }
             setGameState('FARM');
           }
         }
@@ -108,15 +116,27 @@ export default function Game() {
   }, []);
 
   const saveGameState = async () => {
+    if (!userId) {
+      addLog('No user ID, cannot save');
+      return;
+    }
+
     try {
-      await setDoc(doc(db, 'users', userId), {
+      const gameData = {
         userId,
         character,
         silver,
-        crops,
+        crops: crops.map(crop => ({
+          ...crop,
+          plantedAt: Number(crop.plantedAt),
+          stage: Number(crop.stage)
+        })),
         hasSelectedCharacter: true
-      });
-      addLog('Game state saved');
+      };
+
+      addLog(`Saving game state: ${crops.length} crops, ${silver} silver`);
+      await setDoc(doc(db, 'users', userId), gameData);
+      addLog('Game state saved successfully');
     } catch (error: any) {
       addLog(`Save error: ${error.message}`);
     }
@@ -141,20 +161,23 @@ export default function Game() {
         plantedAt: Date.now(),
         stage: 0 as CropStage
       }];
+      
       setCrops(newCrops);
-      setSilver(silver - 2);
+      setSilver(prev => prev - 2);
+      
+      addLog(`Planting crop in slot ${slot}`);
       await saveGameState();
-      addLog(`Planted crop in slot ${slot}`);
     }
   };
 
   const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
-      setSilver(silver + 5);
-      setCrops(crops.filter(c => c.slot !== slot));
+      setSilver(prev => prev + 5);
+      setCrops(prev => prev.filter(c => c.slot !== slot));
+      
+      addLog(`Harvesting crop from slot ${slot}`);
       await saveGameState();
-      addLog(`Harvested crop from slot ${slot}`);
     }
   };
 
