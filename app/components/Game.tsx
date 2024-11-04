@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import styled from 'styled-components';
+import { styled } from 'styled-components';
 
 // Game states
 type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM' | 'RESEARCH';
@@ -178,7 +178,7 @@ export default function Game() {
   );
 }
 
-const GameContainer = styled.div`
+const GameContainer = styled('div')`
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
@@ -276,7 +276,7 @@ const ResearchList = styled.div`
   gap: 10px;
 `;
 
-const ResearchItem = styled.button<ResearchItemProps>`
+const ResearchItem = styled('button')<ResearchItemProps>`
   padding: 10px;
   background: ${props => props.disabled ? '#ccc' : '#4CAF50'};
   color: white;

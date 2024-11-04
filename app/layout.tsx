@@ -1,5 +1,9 @@
-'use client';
-import StyledComponentsRegistry from './registry';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Happy Farmer',
+  description: 'A fun farming game for Telegram',
+};
 
 export default function RootLayout({
   children,
@@ -7,10 +11,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html>
-      <body>
-        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
