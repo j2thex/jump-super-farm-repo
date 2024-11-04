@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { db } from '../firebase/config';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 // Game states
 type GameState = 'START' | 'CHARACTER_SELECT' | 'FARM' | 'RESEARCH' | 'MARKET';
@@ -35,43 +37,122 @@ const characters: Character[] = [
   { id: 3, name: 'Farmer Jack', image: '🧑‍🌾' },
 ];
 
+// Add new type for user data
+type UserData = {
+  userId: string;
+  character: Character | null;
+  silver: number;
+  crops: Crop[];
+  unlockedItems: string[];
+  firstTime: boolean;
+};
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('START');
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [silver, setSilver] = useState(10);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [unlockedItems, setUnlockedItems] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string>('');
 
+  // Initialize user data
   useEffect(() => {
-    const initWebApp = async () => {
+    const initUser = async () => {
       try {
+        // Dynamically import WebApp
         const WebApp = (await import('@twa-dev/sdk')).default;
+        
+        // Get Telegram user ID
+        const tgUser = WebApp.initDataUnsafe?.user;
+        if (!tgUser?.id) {
+          console.error('No Telegram user ID found');
+          return;
+        }
+
+        const userId = tgUser.id.toString();
+        setUserId(userId);
+
+        // Get user data from Firestore
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        
+        if (userDoc.exists()) {
+          // User exists, load their data
+          const userData = userDoc.data() as UserData;
+          setSelectedCharacter(userData.character);
+          setSilver(userData.silver);
+          setCrops(userData.crops);
+          setUnlockedItems(userData.unlockedItems);
+          setGameState(userData.firstTime ? 'CHARACTER_SELECT' : 'FARM');
+        } else {
+          // New user, create their document
+          const newUserData: UserData = {
+            userId,
+            character: null,
+            silver: 10,
+            crops: [],
+            unlockedItems: [],
+            firstTime: true
+          };
+          await setDoc(doc(db, 'users', userId), newUserData);
+          setGameState('CHARACTER_SELECT');
+        }
+        
+        // Initialize WebApp
         WebApp.ready();
+        setLoading(false);
       } catch (error) {
-        console.error('Failed to initialize WebApp:', error);
+        console.error('Error initializing user:', error);
+        setLoading(false);
       }
     };
-    
-    initWebApp();
+
+    initUser();
   }, []);
 
-  const startGame = () => {
-    setGameState('CHARACTER_SELECT');
+  // Save user data when it changes
+  const saveUserData = async () => {
+    if (!userId) return;
+
+    const userData: UserData = {
+      userId,
+      character: selectedCharacter,
+      silver,
+      crops,
+      unlockedItems,
+      firstTime: false
+    };
+
+    try {
+      await updateDoc(doc(db, 'users', userId), userData);
+    } catch (error) {
+      console.error('Error saving user data:', error);
+    }
   };
 
-  const selectCharacter = (character: Character) => {
+  // Update user data whenever important state changes
+  useEffect(() => {
+    if (!loading) {
+      saveUserData();
+    }
+  }, [silver, crops, unlockedItems, selectedCharacter]);
+
+  // Update existing functions to save data
+  const selectCharacter = async (character: Character) => {
     setSelectedCharacter(character);
     setGameState('FARM');
+    await saveUserData();
   };
 
-  const plantCrop = (slot: number) => {
+  const plantCrop = async (slot: number) => {
     if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
-      setCrops([...crops, {
+      const newCrops = [...crops, {
         slot,
-        type: 'wheat',
+        type: 'wheat' as const,
         plantedAt: Date.now(),
-        stage: 0
-      }]);
+        stage: 0 as CropStage
+      }];
+      setCrops(newCrops);
       setSilver(silver - 2);
     }
   };
@@ -116,13 +197,26 @@ export default function Game() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const harvestCrop = (slot: number) => {
+  const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
-      setSilver(silver + 5); // Get 5 silver per harvest
+      setSilver(silver + 5);
       setCrops(crops.filter(c => c.slot !== slot));
     }
   };
+
+  // Add this with other functions
+  const startGame = () => {
+    setGameState('CHARACTER_SELECT');
+  };
+
+  if (loading) {
+    return (
+      <LoadingScreen>
+        <h2>Loading...</h2>
+      </LoadingScreen>
+    );
+  }
 
   return (
     <GameContainer>
@@ -443,5 +537,17 @@ const MarketInfo = styled.div`
   
   li {
     padding: 5px 0;
+  }
+`;
+
+// Add new styled component
+const LoadingScreen = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  
+  h2 {
+    color: var(--tg-theme-text-color, #000);
   }
 `; 
