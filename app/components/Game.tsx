@@ -122,9 +122,9 @@ export default function Game() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
 
-  const log = (message: string) => {
+  const log = (...messages: any[]) => {
     const timestamp = new Date().toLocaleTimeString();
-    setDebugLog(prev => [...prev, `[${timestamp}] ${message}`]);
+    setDebugLog(prev => [...prev, `[${timestamp}] ${messages.join(' ')}`]);
   };
 
   // Define saveUserData before using it in useEffect
@@ -159,42 +159,41 @@ export default function Game() {
         log('WebApp SDK loaded');
         
         const tgUser = WebApp.initDataUnsafe?.user;
-        log(`Telegram user: ${JSON.stringify(tgUser)}`);
+        log('Telegram user:', JSON.stringify(tgUser));
         
         const userIdToUse = tgUser?.id?.toString() || 'test-user-123';
         setUserId(userIdToUse);
-        log(`Using user ID: ${userIdToUse}`);
+        log('Using user ID:', userIdToUse);
 
         const userDocRef = doc(db, 'users', userIdToUse);
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          log('Found existing user data:', userData);
+          log('Found existing user data -', JSON.stringify(userData));
           
           if (userData.character) {
             setSelectedCharacter(userData.character);
-            log('Loaded character:', userData.character.name);
+            log('Loaded character -', userData.character.name);
           }
           
           if (typeof userData.silver === 'number') {
             setSilver(userData.silver);
-            log('Loaded silver:', userData.silver);
+            log('Loaded silver -', userData.silver);
           }
           
           if (Array.isArray(userData.crops)) {
             setCrops(userData.crops);
-            log('Loaded crops:', userData.crops.length);
+            log('Loaded crops -', userData.crops.length);
           }
           
           if (Array.isArray(userData.unlockedItems)) {
             setUnlockedItems(userData.unlockedItems);
-            log('Loaded unlocked items:', userData.unlockedItems);
+            log('Loaded unlocked items -', userData.unlockedItems.join(', '));
           }
           
-          // Set game state based on whether character exists
           setGameState(userData.character ? 'FARM' : 'CHARACTER_SELECT');
-          log('Set initial game state:', userData.character ? 'FARM' : 'CHARACTER_SELECT');
+          log('Set initial game state -', userData.character ? 'FARM' : 'CHARACTER_SELECT');
         } else {
           log('Creating new user');
           const newUserData = {
@@ -213,7 +212,7 @@ export default function Game() {
         setLoading(false);
         log('Initialization complete');
       } catch (error) {
-        log(`Error during initialization: ${error}`);
+        log('Error during initialization -', error);
         setLoading(false);
       }
     };
