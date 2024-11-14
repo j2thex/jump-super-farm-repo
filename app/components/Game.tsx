@@ -19,6 +19,13 @@ interface Bonus {
   description: string;
 }
 
+interface Crop {
+  slot: number;
+  type: string;
+  plantedAt: number;
+  stage: number;
+}
+
 const bonuses: Bonus[] = [
   { id: 1, name: 'Speed', description: 'Grow crops 20% faster' },
   { id: 2, name: 'More farms', description: '20% more farmland' },
@@ -30,7 +37,7 @@ export default function Game() {
   const [selectedBonus, setSelectedBonus] = useState<Bonus | null>(null);
   const [silver, setSilver] = useState(10);
   const [gold, setGold] = useState(0);
-  const [crops, setCrops] = useState([]);
+  const [crops, setCrops] = useState<Crop[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('Web surfer'); // Default to "Web surfer"
 
