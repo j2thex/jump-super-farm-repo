@@ -113,6 +113,12 @@ export default function Game() {
     loadUser();
   }, []);
 
+  const selectCharacter = (selected: Character) => {
+    setCharacter(selected);
+    setGameState('FARM');
+    addLog(`Selected ${selected.name}`);
+  };
+
   const exchangeSilverForGold = () => {
     if (silver >= 100) {
       const goldGained = Math.floor(silver / 100);
