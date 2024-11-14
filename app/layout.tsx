@@ -13,6 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+      </head>
       <body style={{ 
         margin: 0, 
         padding: 0,
