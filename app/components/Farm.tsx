@@ -1,13 +1,31 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const Farm = ({ silver, setSilver, gold, setGold, crops, setCrops, character, addLog }) => {
-  const plantCrop = async (slot) => {
+interface FarmProps {
+  silver: number;
+  setSilver: (silver: number) => void;
+  gold: number;
+  setGold: (gold: number) => void;
+  crops: Crop[];
+  setCrops: (crops: Crop[]) => void;
+  character: any; // Adjust this type based on your character structure
+  addLog: (message: string) => void;
+}
+
+interface Crop {
+  slot: number;
+  type: string;
+  plantedAt: number;
+  stage: number;
+}
+
+const Farm: React.FC<FarmProps> = ({ silver, setSilver, gold, setGold, crops, setCrops, character, addLog }) => {
+  const plantCrop = async (slot: number) => {
     // Logic for planting crops
     addLog('A crop has been planted!');
   };
 
-  const harvestCrop = async (slot) => {
+  const harvestCrop = async (slot: number) => {
     // Logic for harvesting crops
   };
 
