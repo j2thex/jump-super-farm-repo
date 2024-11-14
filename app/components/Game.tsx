@@ -43,6 +43,7 @@ export default function Game() {
   const [userId, setUserId] = useState<string>('');
   const [character, setCharacter] = useState<Character | null>(null);
   const [silver, setSilver] = useState(10);
+  const [gold, setGold] = useState(0);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -252,6 +253,28 @@ export default function Game() {
     return stages[stage];
   };
 
+  const exchangeSilverForGold = () => {
+    if (silver >= 100) {
+      const goldGained = Math.floor(silver / 100);
+      setGold(prevGold => prevGold + goldGained);
+      setSilver(prevSilver => prevSilver - goldGained * 100);
+      addLog(`Exchanged ${goldGained * 100} silver for ${goldGained} gold`);
+    } else {
+      addLog('Not enough silver to exchange for gold');
+    }
+  };
+
+  const purchaseCrop = (cropType: string) => {
+    const cropCost = 10; // Define the cost of the crop in gold
+    if (gold >= cropCost) {
+      setGold(prevGold => prevGold - cropCost);
+      addLog(`Purchased ${cropType} for ${cropCost} gold`);
+      // Logic to add the crop to the user's inventory can be added here
+    } else {
+      addLog('Not enough gold to purchase this crop');
+    }
+  };
+
   return (
     <Container>
       {gameState === 'CHARACTER_SELECT' && (
@@ -276,7 +299,13 @@ export default function Game() {
           <Header>
             <h2>Welcome, {character?.name}!</h2>
             <div>Silver: {silver}</div>
+            <div>Gold: {gold}</div>
           </Header>
+          <Market>
+            <h3>Market</h3>
+            <button onClick={exchangeSilverForGold}>Exchange Silver for Gold</button>
+            <button onClick={() => purchaseCrop('wheat')}>Buy Wheat (10 Gold)</button>
+          </Market>
           <FarmGrid>
             {Array.from({ length: 6 }).map((_, index) => {
               const crop = crops.find(c => c.slot === index);
@@ -457,4 +486,12 @@ const CopyButton = styled.button`
   &:active {
     background: #3d8b40;
   }
+`;
+
+const Market = styled.div`
+  margin: 20px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
 `;
