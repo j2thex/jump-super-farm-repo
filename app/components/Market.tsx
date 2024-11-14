@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 
+// Define the props interface
+interface MarketProps {
+  gold: number;
+  setGold: React.Dispatch<React.SetStateAction<number>>;
+}
+
 const crops = [
   { name: 'Wheat', price: 10 },
   { name: 'Corn', price: 15 },
   // Add more crops as needed
 ];
 
-const Market = ({ gold, setGold }) => {
+const Market: React.FC<MarketProps> = ({ gold, setGold }) => {
   const [activeTab, setActiveTab] = useState<'crops' | 'research'>('crops');
 
   const upgradeCrop = (cropName: string) => {
