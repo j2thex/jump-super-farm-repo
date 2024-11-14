@@ -44,8 +44,10 @@ export default function Game() {
   useEffect(() => {
     // Check if the user is coming from Telegram
     const userAgent = navigator.userAgent;
+    console.log("User Agent:", userAgent); // Debugging log
     if (userAgent.includes("Telegram")) {
       const firstName = Cookies.get('firstName'); // Example: Get from cookies
+      console.log("First Name from Cookies:", firstName); // Debugging log
       if (firstName) {
         setUserName(firstName);
       }
