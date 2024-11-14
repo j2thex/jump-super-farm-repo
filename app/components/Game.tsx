@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import Market from './Market';
-import React from 'react';
+import Cookies from 'js-cookie';
+import { v4 as uuidv4 } from 'uuid';
 
 type GameState = 'CHARACTER_SELECT' | 'FARM' | 'MARKET';
 
@@ -50,9 +51,7 @@ const getCropEmoji = (stage: CropStage) => {
     case 2:
       return '🌾'; // Mature plant
     case 3:
-      return '🌾'; // Ready for harvest
     case 4:
-      return '🌾'; // Ready for harvest
     case 5:
       return '🌾'; // Ready for harvest
     default:
@@ -71,6 +70,7 @@ export default function Game() {
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
+    console.log(`[LOG] ${timestamp}: ${message}`); // Log to console for debugging
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
@@ -78,29 +78,36 @@ export default function Game() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const WebApp = (await import('@twa-dev/sdk')).default;
-        
-        // Get Telegram user ID
-        const tgUser = WebApp.initDataUnsafe?.user;
-        const telegramId = tgUser?.id?.toString();
-        
-        if (!telegramId) {
-          addLog('No Telegram ID found');
+        const telegramId = Cookies.get('telegramId');
+        const webUserId = Cookies.get('webUserId');
+
+        if (!telegramId && !webUserId) {
+          const newWebUserId = uuidv4();
+          Cookies.set('webUserId', newWebUserId);
+          setUserId(newWebUserId);
+          addLog(`Created new web user ID: ${newWebUserId}`);
+        } else {
+          const idToUse = telegramId || webUserId;
+          setUserId(idToUse);
+          addLog(`Using user ID: ${idToUse}`);
+        }
+
+        // Ensure userId is set before accessing Firebase
+        if (!userId) {
+          addLog('User ID is not set, cannot access Firebase.');
           return;
         }
 
-        addLog(`Using Telegram ID: ${telegramId}`);
-        setUserId(telegramId);
-        
-        const userRef = doc(db, 'users', telegramId);
+        const userRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userRef);
         
         if (!userDoc.exists()) {
           addLog('Creating new user...');
           const newUserData = {
-            userId: telegramId,
+            userId,
             character: null,
             silver: 10,
+            gold: 0,
             crops: [],
             hasSelectedCharacter: false
           };
@@ -109,9 +116,11 @@ export default function Game() {
           const userData = userDoc.data();
           addLog('Found existing user');
           
+          // Set the character, silver, gold, and crops from userData
           if (userData.character) {
             setCharacter(userData.character);
             setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
+            setGold(typeof userData.gold === 'number' ? userData.gold : 0);
             if (Array.isArray(userData.crops)) {
               const loadedCrops = userData.crops.map(crop => ({
                 ...crop,
@@ -125,27 +134,54 @@ export default function Game() {
           }
         }
 
-        WebApp.ready();
+        // Ensure WebApp is defined if using Telegram
+        if (typeof WebApp !== 'undefined') {
+          WebApp.ready();
+        }
       } catch (error: any) {
         addLog(`Error: ${error.message}`);
       }
     };
 
     loadUser();
-  }, []);
+  }, [userId]); // Add userId as a dependency to ensure it updates correctly
 
-  const selectCharacter = (selected: Character) => {
+  const selectCharacter = async (selected: Character) => {
     setCharacter(selected);
     setGameState('FARM');
     addLog(`Selected ${selected.name}`);
+    
+    // Save user data to Firebase
+    try {
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        character: selected,
+        silver,
+        gold,
+        crops,
+        hasSelectedCharacter: true
+      }, { merge: true }); // Use merge to update only specific fields
+      addLog(`User data saved to Firebase.`);
+    } catch (error) {
+      addLog(`Error saving user data: ${error.message}`);
+    }
   };
 
-  const exchangeSilverForGold = () => {
+  const exchangeSilverForGold = async () => {
     if (silver >= 100) {
       const goldGained = Math.floor(silver / 100);
       setGold(prevGold => prevGold + goldGained);
       setSilver(prevSilver => prevSilver - goldGained * 100);
       addLog(`Exchanged ${goldGained * 100} silver for ${goldGained} gold`);
+
+      // Save updated balances to Firebase
+      try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { silver, gold }, { merge: true });
+        addLog(`Updated silver and gold in Firebase.`);
+      } catch (error) {
+        addLog(`Error updating balances: ${error.message}`);
+      }
     } else {
       addLog('Not enough silver to exchange for gold');
     }
@@ -162,7 +198,7 @@ export default function Game() {
     }
   };
 
-  const harvestCrop = (slot: number) => {
+  const harvestCrop = async (slot: number) => {
     const crop = crops.find(c => c.slot === slot);
     if (crop && crop.stage === 5) {
       addLog(`Harvesting crop from slot ${slot}`);
@@ -174,14 +210,20 @@ export default function Game() {
       setCrops(newCrops);
       setSilver(newSilver);
       
-      // Save using the new values directly
-      addLog(`Harvested crop from slot ${slot}. New silver: ${newSilver}`);
+      // Save to Firebase
+      try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { crops: newCrops, silver: newSilver }, { merge: true });
+        addLog(`Harvested crop from slot ${slot}. New silver: ${newSilver} and updated Firebase.`);
+      } catch (error) {
+        addLog(`Error saving crops: ${error.message}`);
+      }
     } else {
       addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
     }
   };
 
-  const plantCrop = (slot: number) => {
+  const plantCrop = async (slot: number) => {
     if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
       addLog(`Attempting to plant in slot ${slot}`);
       
@@ -196,8 +238,14 @@ export default function Game() {
       setCrops(newCrops);
       setSilver(prev => prev - 2);
       
-      // Save using the new crops array directly
-      addLog(`Planted crop in slot ${slot}`);
+      // Save to Firebase
+      try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, { crops: newCrops, silver: silver - 2 }, { merge: true });
+        addLog(`Planted crop in slot ${slot} and updated Firebase.`);
+      } catch (error) {
+        addLog(`Error saving crops: ${error.message}`);
+      }
     } else {
       addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
     }
