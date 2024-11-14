@@ -88,7 +88,7 @@ export default function Game() {
           addLog(`Created new web user ID: ${newWebUserId}`);
         } else {
           const idToUse = telegramId || webUserId;
-          setUserId(idToUse);
+          setUserId(idToUse || '');
           addLog(`Using user ID: ${idToUse}`);
         }
 
