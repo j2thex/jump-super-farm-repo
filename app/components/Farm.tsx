@@ -1,6 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
 
+interface Bonus {
+  id: number;
+  name: string;
+  description: string;
+}
+
 interface FarmProps {
   silver: number;
   setSilver: (silver: number) => void;
@@ -8,7 +14,7 @@ interface FarmProps {
   setGold: (gold: number) => void;
   crops: Crop[];
   setCrops: (crops: Crop[]) => void;
-  character: any; // Adjust this type based on your character structure
+  selectedBonus: Bonus | null;
   addLog: (message: string) => void;
 }
 
@@ -36,7 +42,7 @@ const getCropEmoji = (stage: number) => {
   }
 };
 
-const Farm: React.FC<FarmProps> = ({ silver, setSilver, gold, setGold, crops, setCrops, character, addLog }) => {
+const Farm: React.FC<FarmProps> = ({ silver, setSilver, gold, setGold, crops, setCrops, selectedBonus, addLog }) => {
   const plantCrop = async (slot: number) => {
     // Logic for planting crops
     addLog('A crop has been planted!');
@@ -49,9 +55,10 @@ const Farm: React.FC<FarmProps> = ({ silver, setSilver, gold, setGold, crops, se
   return (
     <FarmScreen>
       <Header>
-        <h2>Welcome, {character?.name}!</h2>
+        <h2>Welcome to the Farm!</h2>
         <div>Silver: {silver}</div>
         <div>Gold: {gold}</div>
+        {selectedBonus && <div>Bonus: {selectedBonus.name}</div>}
       </Header>
       <FarmGrid>
         {Array.from({ length: 6 }).map((_, index) => {

@@ -1,8 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
 
+type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
+
 interface BottomNavigationProps {
-  setGameState: (state: string) => void;
+  setGameState: (state: GameState) => void;
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ setGameState }) => {

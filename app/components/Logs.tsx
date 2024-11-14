@@ -17,7 +17,13 @@ const copyToClipboard = async (text: string) => {
   }
 };
 
-const Logs = ({ logs, addLog }) => {
+// Define the props interface
+interface LogsProps {
+  logs: string[]; // Define logs as an array of strings
+  addLog: (message: string) => void; // Define addLog function type
+}
+
+const Logs: React.FC<LogsProps> = ({ logs, addLog }) => {
   return (
     <LogPanel>
       <LogHeader>
