@@ -163,7 +163,7 @@ export default function Game() {
       }, { merge: true }); // Use merge to update only specific fields
       addLog(`User data saved to Firebase.`);
     } catch (error) {
-      addLog(`Error saving user data: ${error.message}`);
+      addLog(`Error saving user data: ${(error as Error).message}`);
     }
   };
 
@@ -180,7 +180,7 @@ export default function Game() {
         await setDoc(userRef, { silver, gold }, { merge: true });
         addLog(`Updated silver and gold in Firebase.`);
       } catch (error) {
-        addLog(`Error updating balances: ${error.message}`);
+        addLog(`Error updating balances: ${(error as Error).message}`);
       }
     } else {
       addLog('Not enough silver to exchange for gold');
@@ -216,7 +216,7 @@ export default function Game() {
         await setDoc(userRef, { crops: newCrops, silver: newSilver }, { merge: true });
         addLog(`Harvested crop from slot ${slot}. New silver: ${newSilver} and updated Firebase.`);
       } catch (error) {
-        addLog(`Error saving crops: ${error.message}`);
+        addLog(`Error saving crops: ${(error as Error).message}`);
       }
     } else {
       addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
@@ -244,7 +244,7 @@ export default function Game() {
         await setDoc(userRef, { crops: newCrops, silver: silver - 2 }, { merge: true });
         addLog(`Planted crop in slot ${slot} and updated Firebase.`);
       } catch (error) {
-        addLog(`Error saving crops: ${error.message}`);
+        addLog(`Error saving crops: ${(error as Error).message}`);
       }
     } else {
       addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
