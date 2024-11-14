@@ -203,6 +203,21 @@ export default function Game() {
     }
   };
 
+  // Update crop growth
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCrops(currentCrops => 
+        currentCrops.map(crop => {
+          const minutesGrown = (Date.now() - crop.plantedAt) / (60 * 1000);
+          const newStage = Math.min(5, Math.floor(minutesGrown / 2.4)) as CropStage; // Adjust growth rate as needed
+          return { ...crop, stage: newStage };
+        })
+      );
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []);
+
   return (
     <Container>
       {gameState === 'CHARACTER_SELECT' && (
