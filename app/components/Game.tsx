@@ -160,6 +160,28 @@ export default function Game() {
     }
   };
 
+  const plantCrop = (slot: number) => {
+    if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
+      addLog(`Attempting to plant in slot ${slot}`);
+      
+      const newCrops: Crop[] = [...crops, {
+        slot,
+        type: 'wheat' as const,
+        plantedAt: Date.now(),
+        stage: 0 as CropStage
+      }];
+      
+      // Update state
+      setCrops(newCrops);
+      setSilver(prev => prev - 2);
+      
+      // Save using the new crops array directly
+      addLog(`Planted crop in slot ${slot}`);
+    } else {
+      addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
+    }
+  };
+
   return (
     <Container>
       {gameState === 'CHARACTER_SELECT' && (
