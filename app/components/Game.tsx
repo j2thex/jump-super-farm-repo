@@ -81,15 +81,22 @@ export default function Game() {
         const telegramId = Cookies.get('telegramId');
         const webUserId = Cookies.get('webUserId');
 
-        if (!telegramId && !webUserId) {
-          const newWebUserId = uuidv4();
-          Cookies.set('webUserId', newWebUserId);
-          setUserId(newWebUserId);
-          addLog(`Created new web user ID: ${newWebUserId}`);
+        // Check if running in Telegram environment
+        if (typeof window !== 'undefined' && typeof window.WebApp !== 'undefined') {
+          const idToUse = telegramId || uuidv4(); // Use Telegram ID or create a new one
+          setUserId(idToUse);
+          addLog(`Using Telegram user ID: ${idToUse}`);
         } else {
-          const idToUse = telegramId || webUserId;
-          setUserId(idToUse || '');
-          addLog(`Using user ID: ${idToUse}`);
+          if (!telegramId && !webUserId) {
+            const newWebUserId = uuidv4();
+            Cookies.set('webUserId', newWebUserId);
+            setUserId(newWebUserId);
+            addLog(`Created new web user ID: ${newWebUserId}`);
+          } else {
+            const idToUse = telegramId || webUserId;
+            setUserId(idToUse || ''); // Ensure userId is set to an empty string if undefined
+            addLog(`Using web user ID: ${idToUse}`);
+          }
         }
 
         // Ensure userId is set before accessing Firebase
