@@ -13,7 +13,13 @@ import BottomNavigation from './BottomNavigation';
 
 type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
 
-const bonuses = [
+interface Bonus {
+  id: number;
+  name: string;
+  description: string;
+}
+
+const bonuses: Bonus[] = [
   { id: 1, name: 'Speed', description: 'Grow crops 20% faster' },
   { id: 2, name: 'More farms', description: '20% more farmland' },
   { id: 3, name: 'Higher price', description: '20% more profit' },
@@ -21,7 +27,7 @@ const bonuses = [
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('BONUS_SELECT');
-  const [selectedBonus, setSelectedBonus] = useState(null);
+  const [selectedBonus, setSelectedBonus] = useState<Bonus | null>(null);
   const [silver, setSilver] = useState(10);
   const [gold, setGold] = useState(0);
   const [crops, setCrops] = useState([]);
@@ -32,7 +38,6 @@ export default function Game() {
     // Check if the user is coming from Telegram
     const userAgent = navigator.userAgent;
     if (userAgent.includes("Telegram")) {
-      // Assuming you have a way to get the user's first name from Telegram
       const firstName = Cookies.get('firstName'); // Example: Get from cookies
       if (firstName) {
         setUserName(firstName);
@@ -46,7 +51,7 @@ export default function Game() {
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
-  const handleBonusSelect = (bonus) => {
+  const handleBonusSelect = (bonus: Bonus) => {
     setSelectedBonus(bonus);
     setGameState('FARM'); // Move to FARM state after selecting a bonus
     addLog(`Selected bonus: ${bonus.name}`);
