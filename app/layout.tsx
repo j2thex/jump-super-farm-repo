@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import StyledComponentsRegistry from './registry';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Happy Farmer',
@@ -14,7 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <Script 
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body style={{ 
         margin: 0, 
