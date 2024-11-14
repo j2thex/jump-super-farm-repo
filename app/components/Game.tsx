@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import Link from 'next/link';
+import Market from './Market';
 
 type GameState = 'CHARACTER_SELECT' | 'FARM' | 'MARKET';
 
