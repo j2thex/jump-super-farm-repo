@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import Market from './Market';
 
 type GameState = 'CHARACTER_SELECT' | 'FARM';
 
@@ -302,11 +303,7 @@ export default function Game() {
             <div>Silver: {silver}</div>
             <div>Gold: {gold}</div>
           </Header>
-          <Market>
-            <h3>Market</h3>
-            <button onClick={exchangeSilverForGold}>Exchange Silver for Gold</button>
-            <button onClick={() => purchaseCrop('wheat')}>Buy Wheat (10 Gold)</button>
-          </Market>
+          <Market gold={gold} setGold={setGold} />
           <FarmGrid>
             {Array.from({ length: 6 }).map((_, index) => {
               const crop = crops.find(c => c.slot === index);
@@ -487,12 +484,4 @@ const CopyButton = styled.button`
   &:active {
     background: #3d8b40;
   }
-`;
-
-const Market = styled.div`
-  margin: 20px 0;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  text-align: center;
 `;
