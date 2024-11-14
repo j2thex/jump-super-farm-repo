@@ -141,6 +141,25 @@ export default function Game() {
     }
   };
 
+  const harvestCrop = (slot: number) => {
+    const crop = crops.find(c => c.slot === slot);
+    if (crop && crop.stage === 5) {
+      addLog(`Harvesting crop from slot ${slot}`);
+      
+      const newCrops = crops.filter(c => c.slot !== slot);
+      const newSilver = silver + 5; // Example reward for harvesting
+      
+      // Update state
+      setCrops(newCrops);
+      setSilver(newSilver);
+      
+      // Save using the new values directly
+      addLog(`Harvested crop from slot ${slot}. New silver: ${newSilver}`);
+    } else {
+      addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
+    }
+  };
+
   return (
     <Container>
       {gameState === 'CHARACTER_SELECT' && (
