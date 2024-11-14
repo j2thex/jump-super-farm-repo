@@ -52,8 +52,9 @@ export default function Game() {
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
-  // Load user data
+  // Use useEffect to ensure window is accessed only on the client side
   useEffect(() => {
+    // Any code that uses window should be placed here
     const loadUser = async () => {
       try {
         const WebApp = (await import('@twa-dev/sdk')).default;
