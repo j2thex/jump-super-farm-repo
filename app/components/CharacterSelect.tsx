@@ -1,52 +1,54 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const CharacterSelect = ({ characters, setGameState, setUserId, setCharacter }) => {
-  const selectCharacter = (selected) => {
+interface Character {
+  id: number;
+  name: string;
+  image: string;
+}
+
+interface CharacterSelectProps {
+  characters: Character[];
+  setGameState: (state: string) => void;
+  setUserId: (id: string) => void;
+  setCharacter: (character: Character) => void;
+}
+
+const CharacterSelect: React.FC<CharacterSelectProps> = ({ characters, setGameState, setUserId, setCharacter }) => {
+  const selectCharacter = (selected: Character) => {
     setCharacter(selected);
     setGameState('FARM');
-    // Save user data to Firebase logic here
   };
 
   return (
-    <CharacterSelectContainer>
-      <h2>Choose Your Character</h2>
-      <CharacterList>
-        {characters.map(char => (
-          <CharacterCard key={char.id} onClick={() => selectCharacter(char)}>
-            <div>{char.image}</div>
-            <div>{char.name}</div>
-          </CharacterCard>
-        ))}
-      </CharacterList>
-    </CharacterSelectContainer>
+    <Container>
+      <h2>Select Your Character</h2>
+      {characters.map(character => (
+        <CharacterCard key={character.id} onClick={() => selectCharacter(character)}>
+          <img src={character.image} alt={character.name} />
+          <h3>{character.name}</h3>
+        </CharacterCard>
+      ))}
+    </Container>
   );
 };
 
-const CharacterSelectContainer = styled.div`
+const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
-`;
-
-const CharacterList = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 20px;
+  align-items: center;
 `;
 
 const CharacterCard = styled.div`
-  padding: 20px;
-  border: 2px solid #ddd;
-  border-radius: 10px;
+  border: 1px solid #4CAF50;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 10px;
   cursor: pointer;
-  
+  text-align: center;
+
   &:hover {
-    background: #f5f5f5;
-  }
-  
-  div:first-child {
-    font-size: 3em;
+    background-color: #f0f0f0;
   }
 `;
 
