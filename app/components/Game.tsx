@@ -138,8 +138,8 @@ export default function Game() {
         if (typeof window !== 'undefined' && typeof window.WebApp !== 'undefined') {
           window.WebApp.ready();
         }
-      } catch (error: any) {
-        addLog(`Error: ${error.message}`);
+      } catch (error: unknown) {
+        addLog(`Error: ${(error as Error).message}`);
       }
     };
 
