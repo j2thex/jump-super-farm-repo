@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Market from './Market';
+import Link from 'next/link';
 
 type GameState = 'CHARACTER_SELECT' | 'FARM';
 
@@ -303,7 +304,9 @@ export default function Game() {
             <div>Silver: {silver}</div>
             <div>Gold: {gold}</div>
           </Header>
-          <Market gold={gold} setGold={setGold} />
+          <Link href="/market">
+            <button>Go to Market</button>
+          </Link>
           <FarmGrid>
             {Array.from({ length: 6 }).map((_, index) => {
               const crop = crops.find(c => c.slot === index);
