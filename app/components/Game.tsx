@@ -135,8 +135,8 @@ export default function Game() {
         }
 
         // Ensure WebApp is defined if using Telegram
-        if (typeof WebApp !== 'undefined') {
-          WebApp.ready();
+        if (typeof window !== 'undefined' && typeof window.WebApp !== 'undefined') {
+          window.WebApp.ready();
         }
       } catch (error: any) {
         addLog(`Error: ${error.message}`);
