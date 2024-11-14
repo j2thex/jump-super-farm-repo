@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Market from './Market';
+import React from 'react';
 
 type GameState = 'CHARACTER_SELECT' | 'FARM' | 'MARKET';
 
@@ -36,6 +37,26 @@ const copyToClipboard = async (text: string) => {
   } catch (err) {
     console.error('Failed to copy:', err);
     return false;
+  }
+};
+
+// Define the getCropEmoji function
+const getCropEmoji = (stage: CropStage) => {
+  switch (stage) {
+    case 0:
+      return '🌱'; // Seedling
+    case 1:
+      return '🌿'; // Young plant
+    case 2:
+      return '🌾'; // Mature plant
+    case 3:
+      return '🌾'; // Ready for harvest
+    case 4:
+      return '🌾'; // Ready for harvest
+    case 5:
+      return '🌾'; // Ready for harvest
+    default:
+      return '🟫'; // Default for no crop
   }
 };
 
