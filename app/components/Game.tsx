@@ -33,13 +33,23 @@ const bonuses: Bonus[] = [
   { id: 3, name: 'Higher price', description: '20% more profit' },
 ];
 
-const detectPlatform = (): Platform => {
-  const telegramId = Cookies.get('telegramId');
-  if (telegramId) {
-    return 'telegram';
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+        };
+      };
+    };
   }
-  return 'web';
-};
+}
 
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('BONUS_SELECT');
@@ -61,26 +71,32 @@ export default function Game() {
   useEffect(() => {
     // Wrap in a function to avoid running twice in development mode
     const init = () => {
-      const telegramId = Cookies.get('telegramId');
-      
-      if (telegramId) {
-        setPlatform('telegram');
-        setUserName(telegramId);
-        addLog(`Platform detected: telegram`);
-        addLog(`Telegram user ID: ${telegramId}`);
-      } else {
-        setPlatform('web');
-        addLog(`Platform detected: web`);
-        
-        // Handle web user
-        let webUserId = Cookies.get('webUserId');
-        if (!webUserId) {
-          webUserId = uuidv4();
-          Cookies.set('webUserId', webUserId);
-          addLog(`Created new web user ID: ${webUserId}`);
-        } else {
-          addLog(`Web user ID: ${webUserId}`);
+      // Check if we're in Telegram WebApp
+      if (window.Telegram?.WebApp) {
+        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+        if (telegramUser) {
+          const telegramId = telegramUser.id.toString();
+          // Set the telegramId cookie
+          Cookies.set('telegramId', telegramId);
+          setPlatform('telegram');
+          setUserName(telegramUser.first_name || telegramId);
+          addLog(`Platform detected: telegram`);
+          addLog(`Telegram user ID: ${telegramId}`);
+          return;
         }
+      }
+
+      // If we're not in Telegram or couldn't get Telegram user data
+      setPlatform('web');
+      addLog(`Platform detected: web`);
+      
+      let webUserId = Cookies.get('webUserId');
+      if (!webUserId) {
+        webUserId = uuidv4();
+        Cookies.set('webUserId', webUserId);
+        addLog(`Created new web user ID: ${webUserId}`);
+      } else {
+        addLog(`Web user ID: ${webUserId}`);
       }
     };
 
