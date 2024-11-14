@@ -51,25 +51,28 @@ declare global {
   }
 }
 
-const getTelegramUserName = (): string | null => {
+const getTelegramUserName = (addLog: (message: string) => void): string | null => {
   try {
-    console.log('Telegram object:', window.Telegram);
-    console.log('WebApp object:', window.Telegram?.WebApp);
-    console.log('InitData:', window.Telegram?.WebApp?.initDataUnsafe);
-    console.log('User:', window.Telegram?.WebApp?.initDataUnsafe?.user);
-
-    const tg = window.Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user?.first_name) {
-      return tg.initDataUnsafe.user.first_name;
-    }
-
-    if (window.Telegram) {
-      console.log('Telegram object exists but no user data found');
+    addLog(`Checking Telegram object: ${window.Telegram ? 'exists' : 'not found'}`);
+    
+    if (window.Telegram?.WebApp) {
+      addLog('WebApp object found');
+      addLog(`InitData: ${JSON.stringify(window.Telegram.WebApp.initDataUnsafe)}`);
+      
+      const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (user) {
+        addLog(`Found Telegram user: ${user.first_name}`);
+        return user.first_name;
+      } else {
+        addLog('No user data in WebApp');
+      }
+    } else {
+      addLog('No WebApp object found');
     }
 
     return null;
   } catch (error) {
-    console.error('Error getting Telegram user:', error);
+    addLog(`Error getting Telegram user: ${error}`);
     return null;
   }
 };
@@ -92,9 +95,11 @@ export default function Game() {
 
   // Single useEffect for initial setup
   useEffect(() => {
-    const telegramName = getTelegramUserName();
+    addLog('Starting platform detection...');
+    const telegramName = getTelegramUserName(addLog);
     if (telegramName) {
       setUserName(telegramName);
+      setPlatform('telegram');
       addLog(`Telegram user detected: ${telegramName}`);
     } else {
       addLog('Web user detected');
