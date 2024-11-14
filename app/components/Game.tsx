@@ -34,8 +34,8 @@ const bonuses: Bonus[] = [
 ];
 
 const detectPlatform = (): Platform => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  if (userAgent.includes('telegram')) {
+  const telegramId = Cookies.get('telegramId');
+  if (telegramId) {
     return 'telegram';
   }
   return 'web';
@@ -61,24 +61,25 @@ export default function Game() {
   useEffect(() => {
     // Wrap in a function to avoid running twice in development mode
     const init = () => {
-      const currentPlatform = detectPlatform();
-      setPlatform(currentPlatform);
-      addLog(`Platform detected: ${currentPlatform}`);
-
-      if (currentPlatform === 'telegram') {
-        const telegramId = Cookies.get('telegramId');
-        if (telegramId) {
-          setUserName(telegramId);
-          addLog(`Telegram user ID: ${telegramId}`);
-        } else {
-          addLog('No Telegram ID found in cookies');
-        }
+      const telegramId = Cookies.get('telegramId');
+      
+      if (telegramId) {
+        setPlatform('telegram');
+        setUserName(telegramId);
+        addLog(`Platform detected: telegram`);
+        addLog(`Telegram user ID: ${telegramId}`);
       } else {
-        const webUserId = Cookies.get('webUserId');
-        if (webUserId) {
-          addLog(`Web user ID: ${webUserId}`);
+        setPlatform('web');
+        addLog(`Platform detected: web`);
+        
+        // Handle web user
+        let webUserId = Cookies.get('webUserId');
+        if (!webUserId) {
+          webUserId = uuidv4();
+          Cookies.set('webUserId', webUserId);
+          addLog(`Created new web user ID: ${webUserId}`);
         } else {
-          addLog('No Web user ID found');
+          addLog(`Web user ID: ${webUserId}`);
         }
       }
     };
