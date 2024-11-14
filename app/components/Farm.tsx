@@ -19,6 +19,23 @@ interface Crop {
   stage: number;
 }
 
+const getCropEmoji = (stage: number) => {
+  switch (stage) {
+    case 0:
+      return '🌱'; // Seedling
+    case 1:
+      return '🌿'; // Young plant
+    case 2:
+      return '🌾'; // Mature plant
+    case 3:
+    case 4:
+    case 5:
+      return '🌾'; // Ready for harvest
+    default:
+      return '🟫'; // Default for no crop
+  }
+};
+
 const Farm: React.FC<FarmProps> = ({ silver, setSilver, gold, setGold, crops, setCrops, character, addLog }) => {
   const plantCrop = async (slot: number) => {
     // Logic for planting crops
