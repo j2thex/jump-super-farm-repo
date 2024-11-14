@@ -12,6 +12,7 @@ import Logs from './Logs';
 import BottomNavigation from './BottomNavigation';
 
 type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
+type Platform = 'telegram' | 'web';
 
 interface Bonus {
   id: number;
@@ -32,6 +33,14 @@ const bonuses: Bonus[] = [
   { id: 3, name: 'Higher price', description: '20% more profit' },
 ];
 
+const detectPlatform = (): Platform => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes('telegram')) {
+    return 'telegram';
+  }
+  return 'web';
+};
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('BONUS_SELECT');
   const [selectedBonus, setSelectedBonus] = useState<Bonus | null>(null);
@@ -39,20 +48,8 @@ export default function Game() {
   const [gold, setGold] = useState(0);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
-  const [userName, setUserName] = useState<string>('Web surfer'); // Default to "Web surfer"
-
-  useEffect(() => {
-    // Check if the user is coming from Telegram
-    const userAgent = navigator.userAgent;
-    console.log("User Agent:", userAgent); // Debugging log
-    if (userAgent.includes("Telegram")) {
-      const firstName = Cookies.get('firstName'); // Example: Get from cookies
-      console.log("First Name from Cookies:", firstName); // Debugging log
-      if (firstName) {
-        setUserName(firstName);
-      }
-    }
-  }, []);
+  const [userName, setUserName] = useState<string>('Web surfer');
+  const [platform, setPlatform] = useState<Platform>('web');
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -60,9 +57,38 @@ export default function Game() {
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
+  // Single useEffect for initial setup
+  useEffect(() => {
+    // Wrap in a function to avoid running twice in development mode
+    const init = () => {
+      const currentPlatform = detectPlatform();
+      setPlatform(currentPlatform);
+      addLog(`Platform detected: ${currentPlatform}`);
+
+      if (currentPlatform === 'telegram') {
+        const telegramId = Cookies.get('telegramId');
+        if (telegramId) {
+          setUserName(telegramId);
+          addLog(`Telegram user ID: ${telegramId}`);
+        } else {
+          addLog('No Telegram ID found in cookies');
+        }
+      } else {
+        const webUserId = Cookies.get('webUserId');
+        if (webUserId) {
+          addLog(`Web user ID: ${webUserId}`);
+        } else {
+          addLog('No Web user ID found');
+        }
+      }
+    };
+
+    init();
+  }, []); // Empty dependency array
+
   const handleBonusSelect = (bonus: Bonus) => {
     setSelectedBonus(bonus);
-    setGameState('FARM'); // Move to FARM state after selecting a bonus
+    setGameState('FARM');
     addLog(`Selected bonus: ${bonus.name}`);
   };
 
@@ -70,6 +96,7 @@ export default function Game() {
     <Container>
       <Header>
         <h2>Welcome, {userName}!</h2>
+        <PlatformIndicator>{platform === 'telegram' ? '📱' : '🌐'}</PlatformIndicator>
       </Header>
       {gameState === 'BONUS_SELECT' && (
         <BonusSelect>
@@ -143,4 +170,9 @@ const BonusOption = styled.div`
   &:hover {
     background-color: #f0f0f0;
   }
+`;
+
+const PlatformIndicator = styled.span`
+  font-size: 1.5em;
+  margin-left: 10px;
 `;

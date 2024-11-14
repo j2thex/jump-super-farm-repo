@@ -24,54 +24,40 @@ const UserManagement: React.FC<UserManagementProps> = ({ setUserId, setSilver, s
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const telegramId = Cookies.get('telegramId');
-        const webUserId = Cookies.get('webUserId');
-
-        let userId: string; // Declare userId variable
-
-        if (!telegramId && !webUserId) {
-          const newWebUserId = uuidv4();
-          Cookies.set('webUserId', newWebUserId);
-          userId = newWebUserId; // Assign new user ID
-          setUserId(userId);
-          addLog(`Created new web user ID: ${newWebUserId}`);
-        } else {
-          userId = telegramId || webUserId || ''; // Provide a fallback to an empty string
-          setUserId(userId);
-          addLog(`Using user ID: ${userId}`);
-        }
-
-        const userRef = doc(db, 'users', userId); // Use userId here
-        const userDoc = await getDoc(userRef);
+        const userId = Cookies.get('telegramId') || Cookies.get('webUserId');
         
-        if (!userDoc.exists()) {
-          addLog('Creating new user...');
-          const newUserData = {
-            userId: userId,
-            silver: 10,
-            gold: 0,
-            crops: [],
-            hasSelectedCharacter: false
-          };
-          await setDoc(userRef, newUserData);
-        } else {
-          const userData = userDoc.data();
-          addLog('Found existing user');
+        if (userId) {
+          setUserId(userId);
+          const userRef = doc(db, 'users', userId);
+          const userDoc = await getDoc(userRef);
           
-          setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
-          setGold(typeof userData.gold === 'number' ? userData.gold : 0);
-          if (Array.isArray(userData.crops)) {
-            const loadedCrops = userData.crops.map(crop => ({
-              ...crop,
-              plantedAt: Number(crop.plantedAt),
-              stage: Number(crop.stage)
-            }));
-            setCrops(loadedCrops);
-            addLog(`Loaded ${loadedCrops.length} crops`);
+          if (!userDoc.exists()) {
+            addLog('Creating new user...');
+            const newUserData = {
+              userId,
+              silver: 10,
+              gold: 0,
+              crops: [],
+              hasSelectedCharacter: false
+            };
+            await setDoc(userRef, newUserData);
+          } else {
+            // Load existing user data
+            const userData = userDoc.data();
+            setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
+            setGold(typeof userData.gold === 'number' ? userData.gold : 0);
+            if (Array.isArray(userData.crops)) {
+              const loadedCrops = userData.crops.map(crop => ({
+                ...crop,
+                plantedAt: Number(crop.plantedAt),
+                stage: Number(crop.stage)
+              }));
+              setCrops(loadedCrops);
+              addLog(`Loaded ${loadedCrops.length} crops`);
+            }
           }
         }
       } catch (error) {
-        // Type assertion to Error
         addLog(`Error loading user: ${(error as Error).message}`);
       }
     };
@@ -79,7 +65,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ setUserId, setSilver, s
     loadUser();
   }, [setUserId, setSilver, setGold, setCrops, addLog]);
 
-  return null; // This component does not render anything
+  return null;
 };
 
 export default UserManagement; 
