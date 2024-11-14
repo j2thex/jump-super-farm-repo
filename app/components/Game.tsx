@@ -53,10 +53,20 @@ declare global {
 
 const getTelegramUserName = (): string | null => {
   try {
+    console.log('Telegram object:', window.Telegram);
+    console.log('WebApp object:', window.Telegram?.WebApp);
+    console.log('InitData:', window.Telegram?.WebApp?.initDataUnsafe);
+    console.log('User:', window.Telegram?.WebApp?.initDataUnsafe?.user);
+
     const tg = window.Telegram?.WebApp;
     if (tg?.initDataUnsafe?.user?.first_name) {
       return tg.initDataUnsafe.user.first_name;
     }
+
+    if (window.Telegram) {
+      console.log('Telegram object exists but no user data found');
+    }
+
     return null;
   } catch (error) {
     console.error('Error getting Telegram user:', error);
