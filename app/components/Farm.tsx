@@ -4,6 +4,7 @@ import styled from 'styled-components';
 const Farm = ({ silver, setSilver, gold, setGold, crops, setCrops, character, addLog }) => {
   const plantCrop = async (slot) => {
     // Logic for planting crops
+    addLog('A crop has been planted!');
   };
 
   const harvestCrop = async (slot) => {

@@ -1,7 +1,23 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const Logs = ({ logs }) => {
+const copyToClipboard = async (text: string) => {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } else {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    return successful;
+  }
+};
+
+const Logs = ({ logs, addLog }) => {
   return (
     <LogPanel>
       <LogHeader>

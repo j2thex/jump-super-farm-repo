@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Cookies from 'js-cookie';
 import { v4 as uuidv4 } from 'uuid';
 
-const UserManagement = ({ setUserId, setCharacter, setSilver, setGold, setCrops, addLog }) => {
+const UserManagement = ({ setUserId, setSilver, setGold, setCrops, addLog }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -22,14 +22,13 @@ const UserManagement = ({ setUserId, setCharacter, setSilver, setGold, setCrops,
           addLog(`Using user ID: ${idToUse}`);
         }
 
-        const userRef = doc(db, 'users', userId);
+        const userRef = doc(db, 'users', setUserId);
         const userDoc = await getDoc(userRef);
         
         if (!userDoc.exists()) {
           addLog('Creating new user...');
           const newUserData = {
-            userId,
-            character: null,
+            userId: setUserId,
             silver: 10,
             gold: 0,
             crops: [],
@@ -40,19 +39,16 @@ const UserManagement = ({ setUserId, setCharacter, setSilver, setGold, setCrops,
           const userData = userDoc.data();
           addLog('Found existing user');
           
-          if (userData.character) {
-            setCharacter(userData.character);
-            setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
-            setGold(typeof userData.gold === 'number' ? userData.gold : 0);
-            if (Array.isArray(userData.crops)) {
-              const loadedCrops = userData.crops.map(crop => ({
-                ...crop,
-                plantedAt: Number(crop.plantedAt),
-                stage: Number(crop.stage)
-              }));
-              setCrops(loadedCrops);
-              addLog(`Loaded ${loadedCrops.length} crops`);
-            }
+          setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
+          setGold(typeof userData.gold === 'number' ? userData.gold : 0);
+          if (Array.isArray(userData.crops)) {
+            const loadedCrops = userData.crops.map(crop => ({
+              ...crop,
+              plantedAt: Number(crop.plantedAt),
+              stage: Number(crop.stage)
+            }));
+            setCrops(loadedCrops);
+            addLog(`Loaded ${loadedCrops.length} crops`);
           }
         }
       } catch (error) {
@@ -61,7 +57,7 @@ const UserManagement = ({ setUserId, setCharacter, setSilver, setGold, setCrops,
     };
 
     loadUser();
-  }, [setUserId, setCharacter, setSilver, setGold, setCrops, addLog]);
+  }, [setUserId, setSilver, setGold, setCrops, addLog]);
 
   return null; // This component does not render anything
 };
