@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import Market from './Market';
 import Link from 'next/link';
 
-type GameState = 'CHARACTER_SELECT' | 'FARM';
+type GameState = 'CHARACTER_SELECT' | 'FARM' | 'MARKET';
 
 type Character = {
   id: number;
@@ -54,9 +53,8 @@ export default function Game() {
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   };
 
-  // Use useEffect to ensure window is accessed only on the client side
+  // Load user data
   useEffect(() => {
-    // Any code that uses window should be placed here
     const loadUser = async () => {
       try {
         const WebApp = (await import('@twa-dev/sdk')).default;
@@ -115,147 +113,6 @@ export default function Game() {
     loadUser();
   }, []);
 
-  // Update crop growth
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCrops(currentCrops => 
-        currentCrops.map(crop => {
-          const minutesGrown = (Date.now() - crop.plantedAt) / (60 * 1000);
-          const newStage = Math.min(5, Math.floor(minutesGrown / 2.4)) as CropStage;
-          return { ...crop, stage: newStage };
-        })
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const saveGameState = async () => {
-    if (!userId) {
-      addLog('No user ID, cannot save');
-      return;
-    }
-
-    try {
-      // Get the latest state directly
-      const currentCrops = crops;
-      const currentSilver = silver;
-
-      addLog(`Current state before save: ${currentCrops.length} crops, ${currentSilver} silver`);
-      addLog(`Crops data: ${JSON.stringify(currentCrops.map(c => c.slot))}`);
-
-      const gameData = {
-        userId,
-        character,
-        silver: currentSilver,
-        crops: currentCrops.map(crop => ({
-          ...crop,
-          plantedAt: Number(crop.plantedAt),
-          stage: Number(crop.stage)
-        })),
-        hasSelectedCharacter: true
-      };
-
-      await setDoc(doc(db, 'users', userId), gameData);
-      addLog(`Saved state: ${currentCrops.length} crops, ${currentSilver} silver`);
-    } catch (error: any) {
-      addLog(`Save error: ${error.message}`);
-    }
-  };
-
-  const selectCharacter = async (selected: Character) => {
-    try {
-      setCharacter(selected);
-      setGameState('FARM');
-      await saveGameState();
-      addLog(`Selected ${selected.name}`);
-    } catch (error: any) {
-      addLog(`Error selecting character: ${error.message}`);
-    }
-  };
-
-  const plantCrop = async (slot: number) => {
-    if (silver >= 2 && !crops.find(crop => crop.slot === slot)) {
-      addLog(`Attempting to plant in slot ${slot}`);
-      
-      const newCrops: Crop[] = [...crops, {
-        slot,
-        type: 'wheat' as const,
-        plantedAt: Date.now(),
-        stage: 0 as CropStage
-      }];
-      
-      // Update state
-      setCrops(newCrops);
-      setSilver(prev => prev - 2);
-      
-      // Save using the new crops array directly
-      try {
-        const gameData = {
-          userId,
-          character,
-          silver: silver - 2, // Use the new silver amount
-          crops: newCrops.map(crop => ({  // Use the new crops array
-            ...crop,
-            plantedAt: Number(crop.plantedAt),
-            stage: Number(crop.stage)
-          })),
-          hasSelectedCharacter: true
-        };
-
-        addLog(`Saving new state with crops: ${newCrops.map(c => c.slot).join(', ')}`);
-        await setDoc(doc(db, 'users', userId), gameData);
-        addLog(`Saved state with ${newCrops.length} crops`);
-      } catch (error: any) {
-        addLog(`Save error: ${error.message}`);
-      }
-    } else {
-      addLog(`Cannot plant in slot ${slot}: ${silver < 2 ? 'Not enough silver' : 'Slot occupied'}`);
-    }
-  };
-
-  const harvestCrop = async (slot: number) => {
-    const crop = crops.find(c => c.slot === slot);
-    if (crop && crop.stage === 5) {
-      addLog(`Harvesting crop from slot ${slot}`);
-      
-      const newCrops = crops.filter(c => c.slot !== slot);
-      const newSilver = silver + 5;
-      
-      // Update state
-      setCrops(newCrops);
-      setSilver(newSilver);
-      
-      // Save using the new values directly
-      try {
-        const gameData = {
-          userId,
-          character,
-          silver: newSilver,
-          crops: newCrops.map(crop => ({
-            ...crop,
-            plantedAt: Number(crop.plantedAt),
-            stage: Number(crop.stage)
-          })),
-          hasSelectedCharacter: true
-        };
-
-        addLog(`Saving after harvest. Remaining crops: ${newCrops.map(c => c.slot).join(', ')}`);
-        await setDoc(doc(db, 'users', userId), gameData);
-        addLog(`Saved state with ${newCrops.length} crops`);
-      } catch (error: any) {
-        addLog(`Save error: ${error.message}`);
-      }
-    } else {
-      addLog(`Cannot harvest slot ${slot}: ${!crop ? 'No crop' : 'Not ready'}`);
-    }
-  };
-
-  const getCropEmoji = (stage: CropStage): string => {
-    const stages = ['🌱', '🌿', '🌾', '🌾', '🌾', '🌾'];
-    return stages[stage];
-  };
-
   const exchangeSilverForGold = () => {
     if (silver >= 100) {
       const goldGained = Math.floor(silver / 100);
@@ -304,9 +161,7 @@ export default function Game() {
             <div>Silver: {silver}</div>
             <div>Gold: {gold}</div>
           </Header>
-          <Link href="/market">
-            <button>Go to Market</button>
-          </Link>
+          <button onClick={exchangeSilverForGold}>Exchange Silver for Gold</button>
           <FarmGrid>
             {Array.from({ length: 6 }).map((_, index) => {
               const crop = crops.find(c => c.slot === index);
@@ -327,6 +182,13 @@ export default function Game() {
             })}
           </FarmGrid>
         </FarmScreen>
+      )}
+
+      {gameState === 'MARKET' && (
+        <MarketContainer>
+          <h1>Market</h1>
+          <Market gold={gold} setGold={setGold} />
+        </MarketContainer>
       )}
 
       <LogPanel>
@@ -487,4 +349,12 @@ const CopyButton = styled.button`
   &:active {
     background: #3d8b40;
   }
+`;
+
+const MarketContainer = styled.div`
+  margin: 20px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
 `;
