@@ -51,6 +51,19 @@ declare global {
   }
 }
 
+const getTelegramUserName = (): string | null => {
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.initDataUnsafe?.user?.first_name) {
+      return tg.initDataUnsafe.user.first_name;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting Telegram user:', error);
+    return null;
+  }
+};
+
 export default function Game() {
   const [gameState, setGameState] = useState<GameState>('BONUS_SELECT');
   const [selectedBonus, setSelectedBonus] = useState<Bonus | null>(null);
@@ -69,39 +82,14 @@ export default function Game() {
 
   // Single useEffect for initial setup
   useEffect(() => {
-    // Wrap in a function to avoid running twice in development mode
-    const init = () => {
-      // Check if we're in Telegram WebApp
-      if (window.Telegram?.WebApp) {
-        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-        if (telegramUser) {
-          const telegramId = telegramUser.id.toString();
-          // Set the telegramId cookie
-          Cookies.set('telegramId', telegramId);
-          setPlatform('telegram');
-          setUserName(telegramUser.first_name || telegramId);
-          addLog(`Platform detected: telegram`);
-          addLog(`Telegram user ID: ${telegramId}`);
-          return;
-        }
-      }
-
-      // If we're not in Telegram or couldn't get Telegram user data
-      setPlatform('web');
-      addLog(`Platform detected: web`);
-      
-      let webUserId = Cookies.get('webUserId');
-      if (!webUserId) {
-        webUserId = uuidv4();
-        Cookies.set('webUserId', webUserId);
-        addLog(`Created new web user ID: ${webUserId}`);
-      } else {
-        addLog(`Web user ID: ${webUserId}`);
-      }
-    };
-
-    init();
-  }, []); // Empty dependency array
+    const telegramName = getTelegramUserName();
+    if (telegramName) {
+      setUserName(telegramName);
+      addLog(`Telegram user detected: ${telegramName}`);
+    } else {
+      addLog('Web user detected');
+    }
+  }, []);
 
   const handleBonusSelect = (bonus: Bonus) => {
     setSelectedBonus(bonus);
