@@ -48,12 +48,26 @@ interface TelegramUser {
 
 const getTelegramUserInfo = (): TelegramUser | null => {
   try {
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      return window.Telegram.WebApp.initDataUnsafe.user;
+    console.log('Checking Telegram WebApp:', window.Telegram?.WebApp);
+    console.log('InitData:', window.Telegram?.WebApp?.initDataUnsafe);
+    
+    if (window.Telegram?.WebApp) {
+      const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      console.log('Telegram user data:', user);
+      
+      if (user) {
+        addLog(`Found Telegram user: ${user.first_name} (ID: ${user.id})`);
+        return user;
+      } else {
+        addLog('No Telegram user data found in WebApp');
+      }
+    } else {
+      addLog('Telegram WebApp not found');
     }
     return null;
   } catch (error) {
     console.error('Error getting Telegram user info:', error);
+    addLog(`Error getting Telegram user: ${error}`);
     return null;
   }
 };
@@ -77,7 +91,10 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
       try {
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
+        addLog(`Current cookies - telegramId: ${Cookies.get('telegramId')}, webUserId: ${Cookies.get('webUserId')}`);
+        
         const telegramUser = getTelegramUserInfo();
+        addLog(`Telegram user detection result: ${telegramUser ? 'Found' : 'Not found'}`);
         
         // Create a new userId if none exists
         if (!userId) {

@@ -55,15 +55,27 @@ declare global {
 
 const getTelegramUserName = (addLog: (message: string) => void): string | null => {
   try {
+    addLog('Checking Telegram integration...');
+    console.log('Window.Telegram:', window.Telegram);
+    console.log('WebApp:', window.Telegram?.WebApp);
+    
     if (window.Telegram?.WebApp) {
+      addLog('Found Telegram WebApp');
       const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      console.log('User data:', user);
+      
       if (user) {
         addLog(`Found Telegram user: ${user.first_name}`);
         return user.first_name;
+      } else {
+        addLog('No user data in WebApp');
       }
+    } else {
+      addLog('No Telegram WebApp found');
     }
     return null;
   } catch (error) {
+    console.error('Telegram detection error:', error);
     addLog(`Error getting Telegram user: ${error}`);
     return null;
   }
