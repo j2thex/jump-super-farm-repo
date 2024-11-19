@@ -2,12 +2,13 @@ import React from 'react';
 import styled from 'styled-components';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { Dispatch, SetStateAction } from 'react';
 
 interface MarketProps {
   gold: number;
-  setGold: (gold: number) => void;
+  setGold: Dispatch<SetStateAction<number>>;
   silver: number;
-  setSilver: (silver: number) => void;
+  setSilver: Dispatch<SetStateAction<number>>;
   userId: string;
   addLog: (message: string) => void;
 }
@@ -46,9 +47,9 @@ const Market: React.FC<MarketProps> = ({ gold, setGold, silver, setSilver, userI
         return;
       }
 
-      // Update state
-      setSilver(prev => prev - 100);
-      setGold(prev => prev + 1);
+      // Update state with properly typed parameters
+      setSilver((prev: number) => prev - 100);
+      setGold((prev: number) => prev + 1);
 
       // Update Firestore
       if (userId) {
