@@ -1,6 +1,19 @@
 declare global {
   interface Window {
-    WebApp: any; // You can replace 'any' with a more specific type if you know the structure
+    ethereum?: any;
+    Telegram?: {
+      WebApp?: {
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            first_name: string;
+            last_name?: string;
+            username?: string;
+          };
+        };
+      };
+    };
   }
 }
 

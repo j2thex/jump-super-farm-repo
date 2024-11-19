@@ -10,6 +10,8 @@ import UserManagement from './UserManagement';
 import Farm from './Farm';
 import Logs from './Logs';
 import BottomNavigation from './BottomNavigation';
+import Swap from './Swap';
+import Referrals from './Referrals';
 
 type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
 type Platform = 'telegram' | 'web';
@@ -84,6 +86,10 @@ export default function Game() {
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
   }, []);
 
+  const setCropsCallback = useCallback((crops: Crop[]) => {
+    setCrops(crops);
+  }, []);
+
   // Single useEffect for initial setup
   useEffect(() => {
     const telegramName = getTelegramUserName(addLog);
@@ -120,7 +126,7 @@ export default function Game() {
         setUserId={setUserId}
         setSilver={setSilver}
         setGold={setGold}
-        setCrops={setCrops}
+        setCrops={setCropsCallback}
         addLog={addLog}
         setGameState={setGameState}
         setSelectedBonus={setSelectedBonus}
@@ -149,7 +155,7 @@ export default function Game() {
           gold={gold} 
           setGold={setGold} 
           crops={crops} 
-          setCrops={setCrops} 
+          setCrops={setCropsCallback} 
           selectedBonus={selectedBonus}
           addLog={addLog}
           userId={userId}
@@ -162,11 +168,18 @@ export default function Game() {
       )}
 
       {gameState === 'SWAP' && (
-        <div>Swap Page Content</div>
+        <Swap 
+          gold={gold} 
+          setGold={setGold}
+          addLog={addLog}
+        />
       )}
 
       {gameState === 'REFERRALS' && (
-        <div>Referrals Page Content</div>
+        <Referrals 
+          userId={userId}
+          addLog={addLog}
+        />
       )}
 
       {gameState !== 'BONUS_SELECT' && <BottomNavigation setGameState={setGameState} />}
@@ -179,7 +192,10 @@ const Container = styled.div`
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  padding-bottom: 80px;
   text-align: center;
+  min-height: 100vh;
+  position: relative;
 `;
 
 const Header = styled.div`

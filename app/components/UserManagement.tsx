@@ -38,6 +38,26 @@ interface Crop {
   stage: number;
 }
 
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  is_premium?: boolean;
+}
+
+const getTelegramUserInfo = (): TelegramUser | null => {
+  try {
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      return window.Telegram.WebApp.initDataUnsafe.user;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting Telegram user info:', error);
+    return null;
+  }
+};
+
 const UserManagement: React.FC<UserManagementProps> = ({ 
   setUserId, 
   setSilver, 
@@ -57,12 +77,19 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
       try {
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
+        const telegramUser = getTelegramUserInfo();
         
-        // Create a new webUserId if none exists
+        // Create a new userId if none exists
         if (!userId) {
-          userId = `web-${uuidv4()}`;
-          Cookies.set('webUserId', userId, { expires: 365 });
-          addLog('Generated new user ID');
+          if (telegramUser) {
+            userId = `tg-${telegramUser.id}`;
+            Cookies.set('telegramId', userId, { expires: 365 });
+            addLog('Generated new Telegram user ID');
+          } else {
+            userId = `web-${uuidv4()}`;
+            Cookies.set('webUserId', userId, { expires: 365 });
+            addLog('Generated new web user ID');
+          }
         }
 
         setUserId(userId);
@@ -77,16 +104,32 @@ const UserManagement: React.FC<UserManagementProps> = ({
             gold: 0,
             crops: [],
             hasSelectedCharacter: false,
-            hasGoldField: false
+            hasGoldField: false,
+            createdAt: Date.now(),
+            // Add Telegram user info if available
+            ...(telegramUser ? {
+              telegramId: telegramUser.id,
+              firstName: telegramUser.first_name,
+              lastName: telegramUser.last_name || '',
+              username: telegramUser.username || '',
+              isPremium: telegramUser.is_premium || false,
+              platform: 'telegram'
+            } : {
+              platform: 'web'
+            })
           };
           await setDoc(userRef, newUserData);
           setSilver(10);
           setGold(0);
           setCrops([]);
+
+          // Log user creation with platform info
+          addLog(`Created new ${telegramUser ? 'Telegram' : 'web'} user${telegramUser ? ` (${telegramUser.first_name})` : ''}`);
         } else {
           const userData = userDoc.data();
           setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
           setGold(typeof userData.gold === 'number' ? userData.gold : 0);
+          setHasGoldField(!!userData.hasGoldField);
           
           // Handle character selection state
           if (userData.hasSelectedCharacter) {
@@ -107,6 +150,14 @@ const UserManagement: React.FC<UserManagementProps> = ({
               stage: Number(crop.stage)
             }));
             setCrops(loadedCrops);
+          }
+
+          // Update Telegram premium status if it changed
+          if (telegramUser && userData.isPremium !== telegramUser.is_premium) {
+            await setDoc(userRef, {
+              isPremium: telegramUser.is_premium
+            }, { merge: true });
+            addLog(`Premium status updated: ${telegramUser.is_premium ? 'Premium' : 'Regular'} user`);
           }
         }
       } catch (error) {

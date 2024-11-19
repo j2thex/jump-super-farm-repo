@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@twa-dev/sdk": "^6.9.0",
+    "ethers": "^6.13.4",
     "firebase": "^10.6.0",
     "js-cookie": "^3.0.5",
     "next": "14.0.2",

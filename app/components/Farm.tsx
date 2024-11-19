@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, Dispatch, SetStateAction } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
@@ -11,9 +11,9 @@ interface Bonus {
 
 interface FarmProps {
   silver: number;
-  setSilver: (silver: number) => void;
+  setSilver: Dispatch<SetStateAction<number>>;
   gold: number;
-  setGold: (gold: number) => void;
+  setGold: Dispatch<SetStateAction<number>>;
   crops: Crop[];
   setCrops: (crops: Crop[]) => void;
   selectedBonus: Bonus | null;
@@ -46,13 +46,34 @@ const getCropEmoji = (stage: number) => {
     case 1:
       return '🌿'; // Young plant
     case 2:
-      return '🌾'; // Mature plant
+      return '🎋'; // Growing
     case 3:
+      return '🌾'; // Mature
     case 4:
+      return '💫'; // Almost ready
     case 5:
-      return '🌾'; // Ready for harvest
+      return '✨'; // Ready for harvest
     default:
-      return '🟫'; // Default for no crop
+      return '🟫'; // Empty soil
+  }
+};
+
+const getCropStageName = (stage: number) => {
+  switch (stage) {
+    case 0:
+      return 'Seedling';
+    case 1:
+      return 'Growing';
+    case 2:
+      return 'Young';
+    case 3:
+      return 'Mature';
+    case 4:
+      return 'Almost';
+    case 5:
+      return 'Ready!';
+    default:
+      return '';
   }
 };
 
@@ -68,6 +89,20 @@ const Farm: React.FC<FarmProps> = ({
   userId,
   hasGoldField = false
 }) => {
+  const getCropStage = (plantedAt: number, cropType: string): number => {
+    const elapsed = Date.now() - plantedAt;
+    const totalTime = CROP_TIMERS[cropType as keyof CropTimers];
+    
+    if (elapsed >= totalTime) return 5; // Ready for harvest
+    
+    const progress = elapsed / totalTime;
+    if (progress >= 0.8) return 4;
+    if (progress >= 0.6) return 3;
+    if (progress >= 0.4) return 2;
+    if (progress >= 0.2) return 1;
+    return 0;
+  };
+
   const plantCrop = async (slot: number) => {
     try {
       // Check if slot is already occupied
@@ -109,8 +144,57 @@ const Farm: React.FC<FarmProps> = ({
   };
 
   const harvestCrop = async (slot: number) => {
-    // Logic for harvesting crops
+    try {
+      const cropIndex = crops.findIndex(c => c.slot === slot);
+      if (cropIndex === -1) return;
+
+      const crop = crops[cropIndex];
+      const currentStage = getCropStage(crop.plantedAt, crop.type);
+
+      if (currentStage < 5) {
+        addLog("This crop isn't ready for harvest yet!");
+        return;
+      }
+
+      // Remove the harvested crop
+      const updatedCrops = crops.filter(c => c.slot !== slot);
+      setCrops(updatedCrops);
+
+      // Add rewards
+      const reward = 20; // Base reward for wheat
+      setSilver(prev => prev + reward);
+
+      // Save to Firestore
+      if (userId) {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+          crops: updatedCrops,
+          silver: silver + reward
+        }, { merge: true });
+      }
+
+      addLog(`Harvested crop for ${reward} silver!`);
+
+    } catch (error) {
+      addLog(`Error harvesting crop: ${(error as Error).message}`);
+    }
   };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const updatedCrops = crops.map(crop => ({
+        ...crop,
+        stage: getCropStage(crop.plantedAt, crop.type)
+      }));
+
+      // Only update if stages have changed
+      if (JSON.stringify(updatedCrops) !== JSON.stringify(crops)) {
+        setCrops(updatedCrops);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(timer);
+  }, [crops, setCrops]);
 
   return (
     <FarmScreen>
@@ -126,23 +210,34 @@ const Farm: React.FC<FarmProps> = ({
         <FarmGrid>
           {Array.from({ length: 6 }).map((_, index) => {
             const crop = crops.find(c => c.slot === index);
+            const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
             return (
               <FarmSlot 
                 key={index}
                 onClick={() => {
                   if (!crop) {
                     plantCrop(index);
-                  } else if (crop.stage === 5) {
+                  } else if (stage === 5) {
                     harvestCrop(index);
                   }
                 }}
-                isReady={crop?.stage === 5}
+                isReady={stage === 5}
               >
-                {crop ? getCropEmoji(crop.stage) : '🟫'}
+                {crop ? getCropEmoji(stage) : '🟫'}
                 {crop && (
-                  <Timer>
-                    {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
-                  </Timer>
+                  <CropInfo>
+                    <StageName>{getCropStageName(stage)}</StageName>
+                    {stage < 5 && (
+                      <Timer>
+                        {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
+                      </Timer>
+                    )}
+                    {stage === 5 && (
+                      <Timer style={{ background: '#4CAF50' }}>
+                        Harvest!
+                      </Timer>
+                    )}
+                  </CropInfo>
                 )}
               </FarmSlot>
             );
@@ -157,8 +252,9 @@ const Farm: React.FC<FarmProps> = ({
         </GoldHeader>
         <FarmGrid>
           {Array.from({ length: 3 }).map((_, index) => {
-            const slotIndex = index + 100; // Use 100+ for gold field slots
+            const slotIndex = index + 100;
             const crop = crops.find(c => c.slot === slotIndex);
+            const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
             return (
               <FarmSlot 
                 key={slotIndex}
@@ -169,17 +265,22 @@ const Farm: React.FC<FarmProps> = ({
                   }
                   if (!crop) {
                     plantCrop(slotIndex);
-                  } else if (crop.stage === 5) {
+                  } else if (stage === 5) {
                     harvestCrop(slotIndex);
                   }
                 }}
-                isReady={crop?.stage === 5}
+                isReady={stage === 5}
                 isLocked={!hasGoldField}
               >
-                {!hasGoldField ? '🔒' : crop ? getCropEmoji(crop.stage) : '🟫'}
-                {crop && hasGoldField && (
+                {!hasGoldField ? '🔒' : crop ? getCropEmoji(stage) : '🟫'}
+                {crop && hasGoldField && stage < 5 && (
                   <Timer>
                     {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
+                  </Timer>
+                )}
+                {crop && hasGoldField && stage === 5 && (
+                  <Timer style={{ background: '#4CAF50' }}>
+                    Ready!
                   </Timer>
                 )}
               </FarmSlot>
@@ -253,16 +354,44 @@ const FarmSlot = styled.div<{ isReady?: boolean; isLocked?: boolean }>`
   background: ${props => props.isLocked ? '#444' : props.isReady ? '#a5d6a7' : '#DEB887'};
   opacity: ${props => props.isLocked ? 0.7 : 1};
   position: relative;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: ${props => !props.isLocked && 'scale(1.05)'};
+    box-shadow: ${props => !props.isLocked && '0 2px 8px rgba(0,0,0,0.2)'};
+  }
+
+  &:active {
+    transform: ${props => !props.isLocked && 'scale(0.95)'};
+  }
+`;
+
+const CropInfo = styled.div`
+  position: absolute;
+  bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+`;
+
+const StageName = styled.div`
+  font-size: 10px;
+  color: #666;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: bold;
 `;
 
 const Timer = styled.div`
-  position: absolute;
-  bottom: 5px;
   font-size: 12px;
   background: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 2px 6px;
   border-radius: 10px;
+  min-width: 40px;
+  text-align: center;
 `;
 
 export default Farm; 
