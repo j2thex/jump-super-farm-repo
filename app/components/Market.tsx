@@ -153,7 +153,7 @@ const CurrencyDisplay = styled.div`
 
 const TableContainer = styled.div`
   overflow-x: auto;
-  background: #f5f5f5;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
@@ -162,31 +162,31 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  color: #333;
+  color: white;
 `;
 
 const Th = styled.th`
   padding: 12px;
-  background: #e0e0e0;
-  border-bottom: 2px solid #ddd;
+  background: rgba(255, 255, 255, 0.15);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
   font-weight: bold;
-  color: #333;
+  color: white;
 `;
 
 const TableRow = styled.tr<{ isAvailable: boolean }>`
   opacity: ${props => props.isAvailable ? 1 : 0.6};
-  background: ${props => props.isAvailable ? '#f5f5f5' : '#e8e8e8'};
-  color: #333;
+  background: ${props => props.isAvailable ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  color: white;
 
   &:hover {
-    background: ${props => props.isAvailable ? '#e8e8e8' : '#e0e0e0'};
+    background: ${props => props.isAvailable ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
   }
 `;
 
 const Td = styled.td`
   padding: 12px;
-  border-bottom: 1px solid #ddd;
-  color: #333;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
 `;
 
 const CropName = styled.div`
@@ -207,14 +207,14 @@ const ComingSoon = styled.span`
 const ExchangeSection = styled.div`
   margin: 20px 0;
   padding: 15px;
-  background: #f5f5f5;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  color: #333;
+  color: white;
 
   h3 {
     margin-bottom: 15px;
-    color: #333;
+    color: white;
   }
 `;
 
@@ -224,8 +224,9 @@ const ExchangeCard = styled.div`
   align-items: center;
   gap: 15px;
   padding: 15px;
-  background: white;
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 8px;
+  color: white;
 `;
 
 const ExchangeRate = styled.div`

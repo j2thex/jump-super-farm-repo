@@ -11,16 +11,20 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ setGameState }) => 
     <NavContainer>
       <NavBar>
         <NavButton onClick={() => setGameState('FARM')}>
-          🌾 Farm
+          <IconText>🌾</IconText>
+          <ButtonText>Farm</ButtonText>
         </NavButton>
         <NavButton onClick={() => setGameState('MARKET')}>
-          🏪 Market
+          <IconText>🏪</IconText>
+          <ButtonText>Market</ButtonText>
         </NavButton>
         <NavButton onClick={() => setGameState('SWAP')}>
-          💱 Swap
+          <IconText>💱</IconText>
+          <ButtonText>Swap</ButtonText>
         </NavButton>
         <NavButton onClick={() => setGameState('REFERRALS')}>
-          👥 Referrals
+          <IconText>👥</IconText>
+          <ButtonText>Referrals</ButtonText>
         </NavButton>
       </NavBar>
     </NavContainer>
@@ -32,9 +36,10 @@ const NavContainer = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.15);
   z-index: 1000;
+  border-top: 2px solid #eee;
 `;
 
 const NavBar = styled.div`
@@ -42,31 +47,41 @@ const NavBar = styled.div`
   grid-template-columns: repeat(4, 1fr);
   max-width: 600px;
   margin: 0 auto;
-  padding: 10px;
-  gap: 5px;
+  padding: 12px;
+  gap: 8px;
 `;
 
 const NavButton = styled.button`
   background: none;
   border: none;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
-  font-size: 0.9em;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: #333;
   transition: all 0.3s ease;
+  border-radius: 8px;
 
   &:hover {
     color: #4CAF50;
     transform: translateY(-2px);
+    background: rgba(74, 175, 80, 0.1);
   }
 
   &:active {
     transform: translateY(0);
   }
+`;
+
+const IconText = styled.span`
+  font-size: 1.5em;
+`;
+
+const ButtonText = styled.span`
+  font-size: 1em;
+  font-weight: 500;
 `;
 
 export default BottomNavigation; 

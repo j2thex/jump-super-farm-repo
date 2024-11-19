@@ -203,16 +203,19 @@ const Container = styled.div`
   text-align: center;
   min-height: 100vh;
   position: relative;
+  color: white;
 `;
 
 const Header = styled.div`
   margin-bottom: 20px;
+  color: white;
 `;
 
 const BonusSelect = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  color: white;
 `;
 
 const BonusOption = styled.div`
@@ -223,13 +226,24 @@ const BonusOption = styled.div`
   cursor: pointer;
   width: 80%;
   text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   
   &:hover {
-    background-color: #f0f0f0;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  h3 {
+    color: white;
+  }
+
+  p {
+    color: #ccc;
   }
 `;
 
 const PlatformIndicator = styled.span`
   font-size: 1.5em;
   margin-left: 10px;
+  color: white;
 `;
