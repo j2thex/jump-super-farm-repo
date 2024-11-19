@@ -46,7 +46,11 @@ interface TelegramUser {
   is_premium?: boolean;
 }
 
-const getTelegramUserInfo = (): TelegramUser | null => {
+interface LoggerFunction {
+  (message: string): void;
+}
+
+const getTelegramUserInfo = (logger: LoggerFunction): TelegramUser | null => {
   try {
     console.log('Checking Telegram WebApp:', window.Telegram?.WebApp);
     console.log('InitData:', window.Telegram?.WebApp?.initDataUnsafe);
@@ -56,18 +60,18 @@ const getTelegramUserInfo = (): TelegramUser | null => {
       console.log('Telegram user data:', user);
       
       if (user) {
-        addLog(`Found Telegram user: ${user.first_name} (ID: ${user.id})`);
+        logger(`Found Telegram user: ${user.first_name} (ID: ${user.id})`);
         return user;
       } else {
-        addLog('No Telegram user data found in WebApp');
+        logger('No Telegram user data found in WebApp');
       }
     } else {
-      addLog('Telegram WebApp not found');
+      logger('Telegram WebApp not found');
     }
     return null;
   } catch (error) {
     console.error('Error getting Telegram user info:', error);
-    addLog(`Error getting Telegram user: ${error}`);
+    logger(`Error getting Telegram user: ${error}`);
     return null;
   }
 };
@@ -93,7 +97,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
         addLog(`Current cookies - telegramId: ${Cookies.get('telegramId')}, webUserId: ${Cookies.get('webUserId')}`);
         
-        const telegramUser = getTelegramUserInfo();
+        const telegramUser = getTelegramUserInfo(addLog);
         addLog(`Telegram user detection result: ${telegramUser ? 'Found' : 'Not found'}`);
         
         // Create a new userId if none exists
