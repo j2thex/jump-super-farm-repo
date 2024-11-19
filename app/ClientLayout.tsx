@@ -10,7 +10,7 @@ export default function ClientLayout({
 }) {
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyles />
+      <GlobalStyles theme={theme} />
       {children}
     </ThemeProvider>
   );
