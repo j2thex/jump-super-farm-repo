@@ -144,7 +144,7 @@ const LinkContainer = styled.div`
   display: flex;
   gap: 10px;
   align-items: center;
-  background: #f5f5f5;
+  background: rgba(0, 0, 0, 0.3);
   padding: 10px;
   border-radius: 8px;
 `;
@@ -156,19 +156,29 @@ const LinkText = styled.div`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.9em;
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  border-radius: 4px;
 `;
 
 const CopyButton = styled.button`
-  background: #4CAF50;
+  background: ${({ theme }) => theme.colors.primary};
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 500;
 
   &:hover {
-    background: #45a049;
+    background: ${({ theme }) => theme.colors.primaryHover};
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 

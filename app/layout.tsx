@@ -1,7 +1,7 @@
-import type { Metadata } from 'next';
 import StyledComponentsRegistry from './registry';
+import ClientLayout from './ClientLayout';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Happy Farmer',
   description: 'Farm game',
 };
@@ -15,7 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <StyledComponentsRegistry>
-          {children}
+          <ClientLayout>{children}</ClientLayout>
         </StyledComponentsRegistry>
       </body>
     </html>

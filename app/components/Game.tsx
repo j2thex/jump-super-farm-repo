@@ -167,10 +167,6 @@ export default function Game() {
         setUserId={setUserId}
         setHasGoldField={setHasGoldField}
       />
-      <Header>
-        <h2>Welcome, {userInfo.name}!</h2>
-        <PlatformIndicator>{userInfo.platform === 'telegram' ? '📱' : '🌐'}</PlatformIndicator>
-      </Header>
       {gameState === 'BONUS_SELECT' && (
         <BonusSelect>
           <h2>Select a Bonus</h2>
@@ -195,6 +191,8 @@ export default function Game() {
           addLog={addLog}
           userId={userId}
           hasGoldField={hasGoldField}
+          userName={userInfo.name}
+          platform={userInfo.platform}
         />
       )}
 
@@ -241,11 +239,6 @@ const Container = styled.div`
   color: white;
 `;
 
-const Header = styled.div`
-  margin-bottom: 20px;
-  color: white;
-`;
-
 const BonusSelect = styled.div`
   display: flex;
   flex-direction: column;
@@ -275,10 +268,4 @@ const BonusOption = styled.div`
   p {
     color: #ccc;
   }
-`;
-
-const PlatformIndicator = styled.span`
-  font-size: 1.5em;
-  margin-left: 10px;
-  color: white;
 `;

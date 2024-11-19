@@ -20,6 +20,8 @@ interface FarmProps {
   addLog: (message: string) => void;
   userId: string;
   hasGoldField?: boolean;
+  userName: string;
+  platform: string;
 }
 
 interface Crop {
@@ -87,7 +89,9 @@ const Farm: React.FC<FarmProps> = ({
   selectedBonus, 
   addLog, 
   userId,
-  hasGoldField = false
+  hasGoldField = false,
+  userName,
+  platform
 }) => {
   const getCropStage = (plantedAt: number, cropType: string): number => {
     const elapsed = Date.now() - plantedAt;
@@ -199,95 +203,106 @@ const Farm: React.FC<FarmProps> = ({
   return (
     <FarmScreen>
       <Header>
-        <h2>Welcome to the Farm!</h2>
-        <div>Silver: {silver}</div>
-        <div>Gold: {gold}</div>
-        {selectedBonus && <div>Bonus: {selectedBonus.name}</div>}
+        <HeaderLeft>
+          <UserInfo>
+            <UserName>{userName}</UserName>
+            <PlatformIcon>{platform === 'telegram' ? '📱' : '🌐'}</PlatformIcon>
+          </UserInfo>
+          {selectedBonus && <BonusTag>🎯 {selectedBonus.name}</BonusTag>}
+        </HeaderLeft>
+        <HeaderRight>
+          <CurrencyInfo>
+            <SilverDisplay>🪙 {silver}</SilverDisplay>
+            <GoldDisplay>✨ {gold}</GoldDisplay>
+          </CurrencyInfo>
+        </HeaderRight>
       </Header>
       
-      <FarmSection>
-        <h3>Silver Fields</h3>
-        <FarmGrid>
-          {Array.from({ length: 6 }).map((_, index) => {
-            const crop = crops.find(c => c.slot === index);
-            const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
-            return (
-              <FarmSlot 
-                key={index}
-                onClick={() => {
-                  if (!crop) {
-                    plantCrop(index);
-                  } else if (stage === 5) {
-                    harvestCrop(index);
-                  }
-                }}
-                isReady={stage === 5}
-              >
-                {crop ? getCropEmoji(stage) : '🟫'}
-                {crop && (
-                  <CropInfo>
-                    <StageName>{getCropStageName(stage)}</StageName>
-                    {stage < 5 && (
-                      <Timer>
-                        {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
-                      </Timer>
-                    )}
-                    {stage === 5 && (
-                      <Timer style={{ background: '#4CAF50' }}>
-                        Harvest!
-                      </Timer>
-                    )}
-                  </CropInfo>
-                )}
-              </FarmSlot>
-            );
-          })}
-        </FarmGrid>
-      </FarmSection>
+      <FarmContent>
+        <FarmSection>
+          <h3>Silver Fields</h3>
+          <FarmGrid>
+            {Array.from({ length: 6 }).map((_, index) => {
+              const crop = crops.find(c => c.slot === index);
+              const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
+              return (
+                <FarmSlot 
+                  key={index}
+                  onClick={() => {
+                    if (!crop) {
+                      plantCrop(index);
+                    } else if (stage === 5) {
+                      harvestCrop(index);
+                    }
+                  }}
+                  isReady={stage === 5}
+                >
+                  {crop ? getCropEmoji(stage) : '🟫'}
+                  {crop && (
+                    <CropInfo>
+                      <StageName>{getCropStageName(stage)}</StageName>
+                      {stage < 5 && (
+                        <Timer>
+                          {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
+                        </Timer>
+                      )}
+                      {stage === 5 && (
+                        <Timer style={{ background: '#4CAF50' }}>
+                          Harvest!
+                        </Timer>
+                      )}
+                    </CropInfo>
+                  )}
+                </FarmSlot>
+              );
+            })}
+          </FarmGrid>
+        </FarmSection>
 
-      <FarmSection>
-        <GoldHeader>
-          <h3>Gold Fields</h3>
-          {!hasGoldField && <LockedBadge>🔒 Locked</LockedBadge>}
-        </GoldHeader>
-        <FarmGrid>
-          {Array.from({ length: 3 }).map((_, index) => {
-            const slotIndex = index + 100;
-            const crop = crops.find(c => c.slot === slotIndex);
-            const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
-            return (
-              <FarmSlot 
-                key={slotIndex}
-                onClick={() => {
-                  if (!hasGoldField) {
-                    addLog('Gold fields are locked. Purchase to unlock!');
-                    return;
-                  }
-                  if (!crop) {
-                    plantCrop(slotIndex);
-                  } else if (stage === 5) {
-                    harvestCrop(slotIndex);
-                  }
-                }}
-                isReady={stage === 5}
-                isLocked={!hasGoldField}
-              >
-                {!hasGoldField ? '🔒' : crop ? getCropEmoji(stage) : '🟫'}
-                {crop && hasGoldField && stage < 5 && (
-                  <Timer>
-                    {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
-                  </Timer>
-                )}
-                {crop && hasGoldField && stage === 5 && (
-                  <Timer style={{ background: '#4CAF50' }}>
-                    Ready!
-                  </Timer>
-                )}
-              </FarmSlot>
-            );
-          })}
-        </FarmGrid>
-      </FarmSection>
+        <FarmSection>
+          <GoldHeader>
+            <h3>Gold Fields</h3>
+            {!hasGoldField && <LockedBadge>🔒 Locked</LockedBadge>}
+          </GoldHeader>
+          <FarmGrid>
+            {Array.from({ length: 3 }).map((_, index) => {
+              const slotIndex = index + 100;
+              const crop = crops.find(c => c.slot === slotIndex);
+              const stage = crop ? getCropStage(crop.plantedAt, crop.type) : 0;
+              return (
+                <FarmSlot 
+                  key={slotIndex}
+                  onClick={() => {
+                    if (!hasGoldField) {
+                      addLog('Gold fields are locked. Purchase to unlock!');
+                      return;
+                    }
+                    if (!crop) {
+                      plantCrop(slotIndex);
+                    } else if (stage === 5) {
+                      harvestCrop(slotIndex);
+                    }
+                  }}
+                  isReady={stage === 5}
+                  isLocked={!hasGoldField}
+                >
+                  {!hasGoldField ? '🔒' : crop ? getCropEmoji(stage) : '🟫'}
+                  {crop && hasGoldField && stage < 5 && (
+                    <Timer>
+                      {Math.max(0, Math.ceil((CROP_TIMERS[crop.type as keyof CropTimers] - (Date.now() - crop.plantedAt)) / 60000))}m
+                    </Timer>
+                  )}
+                  {crop && hasGoldField && stage === 5 && (
+                    <Timer style={{ background: '#4CAF50' }}>
+                      Ready!
+                    </Timer>
+                  )}
+                </FarmSlot>
+              );
+            })}
+          </FarmGrid>
+        </FarmSection>
+      </FarmContent>
     </FarmScreen>
   );
 };
@@ -295,17 +310,78 @@ const Farm: React.FC<FarmProps> = ({
 const FarmScreen = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+  padding-top: 0;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
-  margin-bottom: 20px;
+  padding: 10px 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  margin-bottom: 15px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const UserName = styled.span`
+  font-weight: 500;
+  color: white;
+`;
+
+const PlatformIcon = styled.span`
+  font-size: 1.2em;
+`;
+
+const BonusTag = styled.div`
+  background: rgba(74, 175, 80, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+`;
+
+const CurrencyInfo = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const SilverDisplay = styled.div`
+  color: white;
+  font-weight: 500;
+`;
+
+const GoldDisplay = styled.div`
+  color: #FFD700;
+  font-weight: 500;
+`;
+
+const FarmContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
 `;
 
 const FarmGrid = styled.div`
@@ -320,6 +396,15 @@ const FarmSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 12px;
+
+  h3 {
+    color: white;
+    text-align: center;
+    margin: 0;
+  }
 `;
 
 const GoldHeader = styled.div`
@@ -330,11 +415,13 @@ const GoldHeader = styled.div`
   
   h3 {
     color: #FFD700;
+    margin: 0;
   }
 `;
 
 const LockedBadge = styled.span`
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8em;
@@ -351,7 +438,7 @@ const FarmSlot = styled.div<{ isReady?: boolean; isLocked?: boolean }>`
   justify-content: center;
   font-size: 2em;
   cursor: ${props => props.isLocked ? 'not-allowed' : 'pointer'};
-  background: ${props => props.isLocked ? '#444' : props.isReady ? '#a5d6a7' : '#DEB887'};
+  background: ${props => props.isLocked ? '#333' : props.isReady ? 'rgba(74, 175, 80, 0.2)' : 'rgba(139, 69, 19, 0.2)'};
   opacity: ${props => props.isLocked ? 0.7 : 1};
   position: relative;
   transition: all 0.3s ease;
@@ -359,6 +446,7 @@ const FarmSlot = styled.div<{ isReady?: boolean; isLocked?: boolean }>`
   &:hover {
     transform: ${props => !props.isLocked && 'scale(1.05)'};
     box-shadow: ${props => !props.isLocked && '0 2px 8px rgba(0,0,0,0.2)'};
+    background: ${props => props.isLocked ? '#333' : props.isReady ? 'rgba(74, 175, 80, 0.3)' : 'rgba(139, 69, 19, 0.3)'};
   }
 
   &:active {
@@ -377,8 +465,8 @@ const CropInfo = styled.div`
 
 const StageName = styled.div`
   font-size: 10px;
-  color: #666;
-  background: rgba(255, 255, 255, 0.9);
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
   padding: 1px 4px;
   border-radius: 4px;
   font-weight: bold;
@@ -386,7 +474,7 @@ const StageName = styled.div`
 
 const Timer = styled.div`
   font-size: 12px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 2px 6px;
   border-radius: 10px;
