@@ -128,10 +128,11 @@ const Header = styled.div`
 `;
 
 const ReferralLinkSection = styled.div`
-  background: white;
+  background: #f5f5f5;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #333;
 
   h3 {
     margin-bottom: 15px;
@@ -175,10 +176,11 @@ const ReferralInfoCard = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
-  background: white;
+  background: #f5f5f5;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #333;
 `;
 
 const InfoItem = styled.div`
@@ -199,7 +201,7 @@ const Value = styled.div`
 
 const TableContainer = styled.div`
   overflow-x: auto;
-  background: white;
+  background: #f5f5f5;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 `;
@@ -207,25 +209,29 @@ const TableContainer = styled.div`
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
+  color: #333;
 `;
 
 const Th = styled.th`
   padding: 12px;
   text-align: left;
-  background: #f5f5f5;
+  background: #e0e0e0;
   color: #333;
   font-weight: bold;
 `;
 
 const TableRow = styled.tr`
+  background: #f5f5f5;
+  
   &:hover {
-    background: #f9f9f9;
+    background: #e8e8e8;
   }
 `;
 
 const Td = styled.td`
   padding: 12px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #ddd;
+  color: #333;
 `;
 
 const Status = styled.span<{ isActive: boolean }>`
@@ -237,10 +243,11 @@ const Status = styled.span<{ isActive: boolean }>`
 `;
 
 const ReferralRules = styled.div`
-  background: white;
+  background: #f5f5f5;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #333;
 
   h3 {
     margin-bottom: 15px;
@@ -255,6 +262,7 @@ const ReferralRules = styled.div`
       margin: 10px 0;
       padding-left: 20px;
       position: relative;
+      color: #333;
 
       &:before {
         content: '•';

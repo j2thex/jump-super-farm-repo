@@ -1,9 +1,15 @@
 import React from 'react';
 import styled from 'styled-components';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 interface MarketProps {
   gold: number;
   setGold: (gold: number) => void;
+  silver: number;
+  setSilver: (silver: number) => void;
+  userId: string;
+  addLog: (message: string) => void;
 }
 
 interface CropInfo {
@@ -32,13 +38,60 @@ const crops: CropInfo[] = [
   { name: 'Golden Apple', emoji: '🍎', growthTime: 120, sellPrice: 250, isAvailable: false },
 ];
 
-const Market: React.FC<MarketProps> = ({ gold, setGold }) => {
+const Market: React.FC<MarketProps> = ({ gold, setGold, silver, setSilver, userId, addLog }) => {
+  const handleExchange = async () => {
+    try {
+      if (silver < 100) {
+        addLog("Not enough silver! You need 100 silver to exchange for 1 gold.");
+        return;
+      }
+
+      // Update state
+      setSilver(prev => prev - 100);
+      setGold(prev => prev + 1);
+
+      // Update Firestore
+      if (userId) {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+          silver: silver - 100,
+          gold: gold + 1
+        }, { merge: true });
+      }
+
+      addLog("Exchanged 100 silver for 1 gold! ✨");
+    } catch (error) {
+      addLog(`Exchange error: ${(error as Error).message}`);
+    }
+  };
+
   return (
     <MarketScreen>
       <Header>
         <h2>Market</h2>
-        <GoldDisplay>Gold: {gold}</GoldDisplay>
+        <CurrencyDisplay>
+          <div>🪙 {silver} Silver</div>
+          <div>Gold: {gold}</div>
+        </CurrencyDisplay>
       </Header>
+
+      <ExchangeSection>
+        <h3>Currency Exchange</h3>
+        <ExchangeCard>
+          <ExchangeRate>100 Silver = 1 Gold</ExchangeRate>
+          <ExchangeButton 
+            onClick={handleExchange}
+            disabled={silver < 100}
+          >
+            Exchange Silver for Gold
+          </ExchangeButton>
+          {silver < 100 && (
+            <ExchangeHint>
+              Need {100 - silver} more silver
+            </ExchangeHint>
+          )}
+        </ExchangeCard>
+      </ExchangeSection>
 
       <TableContainer>
         <Table>
@@ -86,15 +139,20 @@ const Header = styled.div`
   border-bottom: 1px solid #eee;
 `;
 
-const GoldDisplay = styled.div`
-  font-size: 1.2em;
-  font-weight: bold;
-  color: #FFD700;
+const CurrencyDisplay = styled.div`
+  display: flex;
+  gap: 15px;
+  align-items: center;
+
+  div:last-child {
+    color: #FFD700;
+    font-weight: bold;
+  }
 `;
 
 const TableContainer = styled.div`
   overflow-x: auto;
-  background: white;
+  background: #f5f5f5;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
@@ -103,11 +161,12 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  color: #333;
 `;
 
 const Th = styled.th`
   padding: 12px;
-  background: #f5f5f5;
+  background: #e0e0e0;
   border-bottom: 2px solid #ddd;
   font-weight: bold;
   color: #333;
@@ -115,16 +174,18 @@ const Th = styled.th`
 
 const TableRow = styled.tr<{ isAvailable: boolean }>`
   opacity: ${props => props.isAvailable ? 1 : 0.6};
-  background: ${props => props.isAvailable ? 'white' : '#f9f9f9'};
+  background: ${props => props.isAvailable ? '#f5f5f5' : '#e8e8e8'};
+  color: #333;
 
   &:hover {
-    background: ${props => props.isAvailable ? '#f0f0f0' : '#f5f5f5'};
+    background: ${props => props.isAvailable ? '#e8e8e8' : '#e0e0e0'};
   }
 `;
 
 const Td = styled.td`
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ddd;
+  color: #333;
 `;
 
 const CropName = styled.div`
@@ -140,6 +201,66 @@ const ComingSoon = styled.span`
   border-radius: 12px;
   font-size: 0.7em;
   font-weight: bold;
+`;
+
+const ExchangeSection = styled.div`
+  margin: 20px 0;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #333;
+
+  h3 {
+    margin-bottom: 15px;
+    color: #333;
+  }
+`;
+
+const ExchangeCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+`;
+
+const ExchangeRate = styled.div`
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #333;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  width: fit-content;
+`;
+
+const ExchangeButton = styled.button<{ disabled: boolean }>`
+  background: ${props => props.disabled ? '#cccccc' : '#4CAF50'};
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.3s ease;
+  font-size: 1em;
+
+  &:hover {
+    background: ${props => props.disabled ? '#cccccc' : '#45a049'};
+    transform: ${props => !props.disabled && 'translateY(-2px)'};
+  }
+
+  &:active {
+    transform: ${props => !props.disabled && 'translateY(0)'};
+  }
+`;
+
+const ExchangeHint = styled.div`
+  color: #666;
+  font-size: 0.9em;
+  font-style: italic;
 `;
 
 export default Market; 

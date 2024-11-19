@@ -164,7 +164,14 @@ export default function Game() {
       )}
 
       {gameState === 'MARKET' && (
-        <Market gold={gold} setGold={setGold} />
+        <Market 
+          gold={gold} 
+          setGold={setGold}
+          silver={silver}
+          setSilver={setSilver}
+          userId={userId}
+          addLog={addLog}
+        />
       )}
 
       {gameState === 'SWAP' && (
