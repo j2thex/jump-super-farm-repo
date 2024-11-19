@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -53,23 +53,13 @@ declare global {
 
 const getTelegramUserName = (addLog: (message: string) => void): string | null => {
   try {
-    addLog(`Checking Telegram object: ${window.Telegram ? 'exists' : 'not found'}`);
-    
     if (window.Telegram?.WebApp) {
-      addLog('WebApp object found');
-      addLog(`InitData: ${JSON.stringify(window.Telegram.WebApp.initDataUnsafe)}`);
-      
       const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (user) {
         addLog(`Found Telegram user: ${user.first_name}`);
         return user.first_name;
-      } else {
-        addLog('No user data in WebApp');
       }
-    } else {
-      addLog('No WebApp object found');
     }
-
     return null;
   } catch (error) {
     addLog(`Error getting Telegram user: ${error}`);
@@ -86,34 +76,56 @@ export default function Game() {
   const [logs, setLogs] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>('Web surfer');
   const [platform, setPlatform] = useState<Platform>('web');
+  const [userId, setUserId] = useState<string>('');
+  const [hasGoldField, setHasGoldField] = useState(false);
 
-  const addLog = (message: string) => {
+  const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`[LOG] ${timestamp}: ${message}`);
     setLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`]);
-  };
+  }, []);
 
   // Single useEffect for initial setup
   useEffect(() => {
-    addLog('Starting platform detection...');
     const telegramName = getTelegramUserName(addLog);
     if (telegramName) {
       setUserName(telegramName);
       setPlatform('telegram');
-      addLog(`Telegram user detected: ${telegramName}`);
     } else {
-      addLog('Web user detected');
+      setPlatform('web');
     }
-  }, []);
+  }, [addLog]);
 
-  const handleBonusSelect = (bonus: Bonus) => {
-    setSelectedBonus(bonus);
-    setGameState('FARM');
-    addLog(`Selected bonus: ${bonus.name}`);
+  const handleBonusSelect = async (bonus: Bonus) => {
+    try {
+      // Update Firestore
+      if (userId) {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, {
+          hasSelectedCharacter: true,
+          selectedBonus: bonus.name
+        }, { merge: true }); // Use merge to only update these fields
+      }
+
+      setSelectedBonus(bonus);
+      setGameState('FARM');
+      addLog(`Selected bonus: ${bonus.name}`);
+    } catch (error) {
+      addLog(`Error saving bonus selection: ${(error as Error).message}`);
+    }
   };
 
   return (
     <Container>
+      <UserManagement 
+        setUserId={setUserId}
+        setSilver={setSilver}
+        setGold={setGold}
+        setCrops={setCrops}
+        addLog={addLog}
+        setGameState={setGameState}
+        setSelectedBonus={setSelectedBonus}
+        setHasGoldField={setHasGoldField}
+      />
       <Header>
         <h2>Welcome, {userName}!</h2>
         <PlatformIndicator>{platform === 'telegram' ? '📱' : '🌐'}</PlatformIndicator>
@@ -138,8 +150,10 @@ export default function Game() {
           setGold={setGold} 
           crops={crops} 
           setCrops={setCrops} 
-          selectedBonus={selectedBonus} // Pass selected bonus to Farm
-          addLog={addLog} 
+          selectedBonus={selectedBonus}
+          addLog={addLog}
+          userId={userId}
+          hasGoldField={hasGoldField}
         />
       )}
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import Image from 'next/image';
 
 interface Character {
   id: number;
@@ -25,7 +26,12 @@ const CharacterSelect: React.FC<CharacterSelectProps> = ({ characters, setGameSt
       <h2>Select Your Character</h2>
       {characters.map(character => (
         <CharacterCard key={character.id} onClick={() => selectCharacter(character)}>
-          <img src={character.image} alt={character.name} />
+          <Image 
+            src={character.image} 
+            alt={character.name}
+            width={200}  // Set appropriate width
+            height={200} // Set appropriate height
+          />
           <h3>{character.name}</h3>
         </CharacterCard>
       ))}
