@@ -95,13 +95,18 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
       try {
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
-        addLog(`Current cookies - telegramId: ${Cookies.get('telegramId')}, webUserId: ${Cookies.get('webUserId')}`);
+        const existingTelegramId = Cookies.get('telegramId');
+        addLog(`Current cookies - telegramId: ${existingTelegramId}, webUserId: ${Cookies.get('webUserId')}`);
         
         const telegramUser = getTelegramUserInfo(addLog);
         addLog(`Telegram user detection result: ${telegramUser ? 'Found' : 'Not found'}`);
         
-        // Create a new userId if none exists
-        if (!userId) {
+        // If we have an existing Telegram ID but WebApp isn't available, keep using it
+        if (existingTelegramId && !telegramUser) {
+          addLog('Using existing Telegram ID');
+          userId = existingTelegramId;
+        } else if (!userId) {
+          // Only create new ID if we don't have any existing ID
           if (telegramUser) {
             userId = `tg-${telegramUser.id}`;
             Cookies.set('telegramId', userId, { expires: 365 });

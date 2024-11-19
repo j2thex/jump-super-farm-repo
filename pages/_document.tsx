@@ -8,7 +8,7 @@ export default function Document() {
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
-          id="telegram-web-app"
+          id="telegram-webapp"
         />
       </Head>
       <body>
