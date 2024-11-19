@@ -3,21 +3,7 @@ import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Cookies from 'js-cookie';
 import { v4 as uuidv4 } from 'uuid';
-
-// Import types and bonuses from Game
-type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
-
-interface Bonus {
-  id: number;
-  name: string;
-  description: string;
-}
-
-const bonuses: Bonus[] = [
-  { id: 1, name: 'Speed', description: 'Grow crops 20% faster' },
-  { id: 2, name: 'More farms', description: '20% more farmland' },
-  { id: 3, name: 'Higher price', description: '20% more profit' },
-];
+import { GameState, Platform, Bonus, bonuses } from '../types/game';
 
 // Define the props interface
 interface UserManagementProps {
@@ -29,6 +15,7 @@ interface UserManagementProps {
   setGameState: (state: GameState) => void;
   setSelectedBonus: (bonus: Bonus | null) => void;
   setHasGoldField: (hasGoldField: boolean) => void;
+  setUserInfo: (info: { name: string; platform: Platform; id?: string }) => void;
 }
 
 interface Crop {
@@ -84,7 +71,8 @@ const UserManagement: React.FC<UserManagementProps> = ({
   addLog, 
   setGameState, 
   setSelectedBonus, 
-  setHasGoldField 
+  setHasGoldField, 
+  setUserInfo
 }) => {
   useEffect(() => {
     let isLoading = false;
@@ -151,6 +139,14 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
           // Log user creation with platform info
           addLog(`Created new ${telegramUser ? 'Telegram' : 'web'} user${telegramUser ? ` (${telegramUser.first_name})` : ''}`);
+          if (telegramUser) {
+            setUserInfo({
+              name: telegramUser.first_name,
+              platform: 'telegram',
+              id: userId
+            });
+            Cookies.set('userName', telegramUser.first_name);
+          }
         } else {
           const userData = userDoc.data();
           setSilver(typeof userData.silver === 'number' ? userData.silver : 10);
@@ -160,7 +156,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
           // Handle character selection state
           if (userData.hasSelectedCharacter) {
             setGameState('FARM');
-            const savedBonus = bonuses.find(b => b.name === userData.selectedBonus);
+            const savedBonus = bonuses.find((b: Bonus) => b.name === userData.selectedBonus);
             if (savedBonus) {
               setSelectedBonus(savedBonus);
               if (Array.isArray(userData.crops)) {
@@ -185,6 +181,15 @@ const UserManagement: React.FC<UserManagementProps> = ({
             }, { merge: true });
             addLog(`Premium status updated: ${telegramUser.is_premium ? 'Premium' : 'Regular'} user`);
           }
+
+          // Set user info from stored data
+          if (userData.platform === 'telegram') {
+            setUserInfo({
+              name: userData.firstName || 'Telegram User',
+              platform: 'telegram',
+              id: userId
+            });
+          }
         }
       } catch (error) {
         addLog(`Error: ${(error as Error).message}`);
@@ -206,7 +211,8 @@ const UserManagement: React.FC<UserManagementProps> = ({
     setSelectedBonus,
     setSilver,
     setUserId,
-    setHasGoldField
+    setHasGoldField,
+    setUserInfo
   ]);
 
   return null;

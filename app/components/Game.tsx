@@ -88,10 +88,16 @@ export default function Game() {
   const [gold, setGold] = useState(0);
   const [crops, setCrops] = useState<Crop[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
-  const [userName, setUserName] = useState<string>('Web surfer');
-  const [platform, setPlatform] = useState<Platform>('web');
-  const [userId, setUserId] = useState<string>('');
   const [hasGoldField, setHasGoldField] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [userInfo, setUserInfo] = useState<{
+    name: string;
+    platform: Platform;
+    id?: string;
+  }>({
+    name: 'Web surfer',
+    platform: 'web'
+  });
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -105,19 +111,35 @@ export default function Game() {
   // Single useEffect for initial setup
   useEffect(() => {
     const telegramName = getTelegramUserName(addLog);
+    const existingTelegramId = Cookies.get('telegramId');
+
     if (telegramName) {
-      setUserName(telegramName);
-      setPlatform('telegram');
+      setUserInfo({
+        name: telegramName,
+        platform: 'telegram',
+        id: existingTelegramId
+      });
+    } else if (existingTelegramId) {
+      // If we have a Telegram ID but no WebApp, still treat as Telegram user
+      const storedName = Cookies.get('userName') || 'Telegram User';
+      setUserInfo({
+        name: storedName,
+        platform: 'telegram',
+        id: existingTelegramId
+      });
     } else {
-      setPlatform('web');
+      setUserInfo({
+        name: 'Web surfer',
+        platform: 'web'
+      });
     }
   }, [addLog]);
 
   const handleBonusSelect = async (bonus: Bonus) => {
     try {
       // Update Firestore
-      if (userId) {
-        const userRef = doc(db, 'users', userId);
+      if (userInfo.id) {
+        const userRef = doc(db, 'users', userInfo.id);
         await setDoc(userRef, {
           hasSelectedCharacter: true,
           selectedBonus: bonus.name
@@ -135,18 +157,19 @@ export default function Game() {
   return (
     <Container>
       <UserManagement 
-        setUserId={setUserId}
+        setUserInfo={setUserInfo}
         setSilver={setSilver}
         setGold={setGold}
         setCrops={setCropsCallback}
         addLog={addLog}
         setGameState={setGameState}
         setSelectedBonus={setSelectedBonus}
+        setUserId={setUserId}
         setHasGoldField={setHasGoldField}
       />
       <Header>
-        <h2>Welcome, {userName}!</h2>
-        <PlatformIndicator>{platform === 'telegram' ? '📱' : '🌐'}</PlatformIndicator>
+        <h2>Welcome, {userInfo.name}!</h2>
+        <PlatformIndicator>{userInfo.platform === 'telegram' ? '📱' : '🌐'}</PlatformIndicator>
       </Header>
       {gameState === 'BONUS_SELECT' && (
         <BonusSelect>

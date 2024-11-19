@@ -1,4 +1,5 @@
 export type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
+export type Platform = 'telegram' | 'web';
 
 export interface Bonus {
   id: number;
