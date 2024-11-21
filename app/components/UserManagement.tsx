@@ -61,61 +61,19 @@ interface UserData {
   selectedBonus?: string;
 }
 
-const waitForTelegramWebApp = async (logger: LoggerFunction): Promise<{ user: TelegramUser | null; available: boolean }> => {
-  try {
-    logger('📱 Initializing Telegram WebApp...');
-    
-    // Wait for WebApp to be ready
-    for (let i = 0; i < 10; i++) {  // Increased attempts
-      if (window.Telegram?.WebApp) {
-        if (window.Telegram.WebApp.initDataUnsafe?.user) {
-          const user = window.Telegram.WebApp.initDataUnsafe.user;
-          logger(`👤 Found Telegram user: ${user.first_name}`);
-          logger(`🆔 ID: ${user.id}`);
-          if (user.username) logger(`👨‍💻 @${user.username}`);
-          if (user.is_premium) logger('⭐ Premium user');
-          return { user, available: true };
-        }
-        
-        // If WebApp exists but no user data yet, wait a bit
-        await new Promise(resolve => setTimeout(resolve, 500));
-        continue;
-      }
-
-      logger(`Waiting for Telegram WebApp (attempt ${i + 1}/10)...`);
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // Check if we're in Telegram environment
-    const isTelegramEnvironment = window.location.href.includes('t.me') || 
-                               /Telegram/i.test(navigator.userAgent) ||
-                               !!window.Telegram;
-
-    if (isTelegramEnvironment) {
-      logger('📱 In Telegram environment but WebApp not initialized');
-      return { user: null, available: true };
-    }
-
-    logger('🌐 Web environment detected');
-    return { user: null, available: false };
-  } catch (error) {
-    logger(`❌ Error initializing WebApp: ${error}`);
-    return { user: null, available: false };
-  }
-};
-
-const extractTelegramId = (url: string): string | null => {
-  try {
-    const startMatch = url.match(/\?start=user(\d+)/);
-    if (startMatch) return startMatch[1];
-    
-    const tgWebAppStartParam = new URLSearchParams(url.split('?')[1]).get('tgWebAppStartParam');
-    if (tgWebAppStartParam?.startsWith('user')) return tgWebAppStartParam.replace('user', '');
-    
-    return null;
-  } catch {
+const getTelegramUser = (): TelegramUser | null => {
+  const telegramWebApp = window.Telegram?.WebApp;
+  
+  if (!telegramWebApp || !telegramWebApp.initDataUnsafe) {
     return null;
   }
+
+  const user = telegramWebApp.initDataUnsafe?.user;
+  if (!user || !user.id) {
+    return null;
+  }
+
+  return user;
 };
 
 const UserManagement: React.FC<UserManagementProps> = ({ 
@@ -137,29 +95,22 @@ const UserManagement: React.FC<UserManagementProps> = ({
       isLoading = true;
 
       try {
-        // First check if we're in Telegram environment
-        const urlParams = new URLSearchParams(window.location.search);
-        const isTelegramEnvironment = window.location.href.includes('t.me') || 
-                                     /Telegram/i.test(navigator.userAgent) ||
-                                     !!window.Telegram ||
-                                     urlParams.get('tgWebAppStartParam') || 
-                                     urlParams.get('tgWebAppData');
-
+        // Get Telegram user immediately
+        const telegramUser = getTelegramUser();
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
-        
-        // Explicitly type telegramUser
-        const { user: telegramUser, available } = await waitForTelegramWebApp(addLog);
-        
+
         if (telegramUser) {
-          // Use Telegram ID as user ID
+          // Use Telegram ID directly
           userId = telegramUser.id.toString();
-          
+          addLog(`👤 Found Telegram user: ${telegramUser.first_name}`);
+          if (telegramUser.username) addLog(`👨‍💻 @${telegramUser.username}`);
+          if (telegramUser.is_premium) addLog('⭐ Premium user');
+
           // Save to Firestore
           const userRef = doc(db, 'users', userId);
           const userDoc = await getDoc(userRef);
-          
+
           if (!userDoc.exists()) {
-            addLog('📝 Creating new user profile...');
             const newUserData = {
               userId,
               telegramId: telegramUser.id,
@@ -178,7 +129,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
             };
 
             await setDoc(userRef, newUserData);
-            addLog('✅ User profile created successfully');
+            addLog('✅ User profile created');
 
             setSilver(10);
             setGold(0);
