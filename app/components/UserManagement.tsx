@@ -114,14 +114,14 @@ const UserManagement: React.FC<UserManagementProps> = ({
         // Create or get user ID
         if (!userId) {
           if (telegramUser) {
-            // We have full Telegram user data
-            userId = `${telegramUser.id}`;
-            addLog('✨ Created new Telegram user profile with full data');
+            // Use actual Telegram ID as user ID
+            userId = telegramUser.id.toString();
+            addLog('✨ Created new Telegram user profile with ID');
           } else if (isTelegramEnvironment) {
             // Try to extract Telegram ID from URL parameters
             const urlTelegramId = extractTelegramId(window.location.href);
-            userId = urlTelegramId || `tg-${Date.now()}`;
-            addLog('✨ Created new Telegram user profile');
+            userId = urlTelegramId || `web-${uuidv4()}`; // Fallback to web ID if no Telegram ID
+            addLog('✨ Created new user profile');
           } else {
             // Definitely a web user
             userId = `web-${uuidv4()}`;
