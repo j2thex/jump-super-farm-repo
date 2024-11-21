@@ -122,18 +122,29 @@ const UserManagement: React.FC<UserManagementProps> = ({
           if (telegramUser) {
             // Use actual Telegram ID
             userId = telegramUser.id.toString();
-            Cookies.set('telegramId', userId, { expires: 365 });
-            addLog('✨ Created new Telegram user profile');
+            addLog(`✨ Created new Telegram user with ID: ${userId}`);
           } else if (isTelegramEnvironment) {
-            // Generate temporary ID for Telegram users
-            userId = Math.floor(Math.random() * 1000000000).toString();
-            Cookies.set('telegramId', userId, { expires: 365 });
-            addLog('✨ Created new Telegram user profile');
+            // Try to get ID from URL parameters
+            const startParam = urlParams.get('tgWebAppStartParam');
+            if (startParam?.startsWith('user')) {
+              userId = startParam.replace('user', '');
+              addLog(`✨ Using Telegram ID from URL: ${userId}`);
+            } else {
+              // If we can't get the ID, use web user format
+              userId = `web-${uuidv4()}`;
+              addLog('✨ Created new web user (fallback)');
+            }
           } else {
-            // Only create web user if definitely not in Telegram
+            // Definitely a web user
             userId = `web-${uuidv4()}`;
+            addLog('✨ Created new web user');
+          }
+
+          // Set appropriate cookie
+          if (isTelegramEnvironment || telegramUser) {
+            Cookies.set('telegramId', userId, { expires: 365 });
+          } else {
             Cookies.set('webUserId', userId, { expires: 365 });
-            addLog('✨ Created new web user profile');
           }
         }
 
