@@ -67,6 +67,7 @@ export default function Game() {
     name: 'Web surfer',
     platform: 'web'
   });
+  const [telegramId, setTelegramId] = useState<string>('');
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -101,6 +102,13 @@ export default function Game() {
         name: 'Web surfer',
         platform: 'web'
       });
+    }
+
+    // Get Telegram user data immediately on load
+    const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    if (user?.id) {
+      setTelegramId(user.id.toString());
+      console.log('Telegram user:', user); // For debugging
     }
   }, [addLog]);
 
@@ -142,8 +150,8 @@ export default function Game() {
             <TelegramInfo>
               <UserIcon>👤</UserIcon>
               <UserName>{userInfo.name}</UserName>
-              {userInfo.telegramId && (
-                <TelegramId>ID: {userInfo.telegramId}</TelegramId>
+              {telegramId && (
+                <TelegramId>ID: {telegramId}</TelegramId>
               )}
             </TelegramInfo>
           )}
