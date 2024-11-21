@@ -12,45 +12,13 @@ import Logs from './Logs';
 import BottomNavigation from './BottomNavigation';
 import Swap from './Swap';
 import Referrals from './Referrals';
-
-type GameState = 'BONUS_SELECT' | 'FARM' | 'MARKET' | 'SWAP' | 'REFERRALS';
-type Platform = 'telegram' | 'web';
-
-interface Bonus {
-  id: number;
-  name: string;
-  description: string;
-}
+import { GameState, Platform, Bonus, bonuses } from '../types/game';
 
 interface Crop {
   slot: number;
   type: string;
   plantedAt: number;
   stage: number;
-}
-
-const bonuses: Bonus[] = [
-  { id: 1, name: 'Speed', description: 'Grow crops 20% faster' },
-  { id: 2, name: 'More farms', description: '20% more farmland' },
-  { id: 3, name: 'Higher price', description: '20% more profit' },
-];
-
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            first_name: string;
-            last_name?: string;
-            username?: string;
-          };
-        };
-      };
-    };
-  }
 }
 
 const getTelegramUserName = (addLog: (message: string) => void): string | null => {

@@ -31,36 +31,37 @@ interface TelegramUser {
   last_name?: string;
   username?: string;
   is_premium?: boolean;
+  language_code?: string;
 }
 
 interface LoggerFunction {
   (message: string): void;
 }
 
-const getTelegramUserInfo = (logger: LoggerFunction): TelegramUser | null => {
-  try {
-    console.log('Checking Telegram WebApp:', window.Telegram?.WebApp);
-    console.log('InitData:', window.Telegram?.WebApp?.initDataUnsafe);
+const waitForTelegramWebApp = async (logger: LoggerFunction, maxAttempts = 5): Promise<TelegramUser | null> => {
+  for (let i = 0; i < maxAttempts; i++) {
+    logger(`Attempt ${i + 1} to get Telegram WebApp...`);
     
-    if (window.Telegram?.WebApp) {
-      const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      console.log('Telegram user data:', user);
-      
-      if (user) {
-        logger(`Found Telegram user: ${user.first_name} (ID: ${user.id})`);
-        return user;
-      } else {
-        logger('No Telegram user data found in WebApp');
-      }
-    } else {
-      logger('Telegram WebApp not found');
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      const user = window.Telegram.WebApp.initDataUnsafe.user;
+      logger(`✅ Found Telegram user: ${user.first_name}`);
+      return user;
     }
-    return null;
-  } catch (error) {
-    console.error('Error getting Telegram user info:', error);
-    logger(`Error getting Telegram user: ${error}`);
-    return null;
+
+    // Check if we're in Telegram environment
+    const isTelegramEnvironment = window.location.href.includes('t.me') || 
+                                /Telegram/i.test(navigator.userAgent) ||
+                                !!window.Telegram;
+
+    if (isTelegramEnvironment) {
+      logger('📱 In Telegram environment, waiting for WebApp...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue;
+    }
+
+    break;
   }
+  return null;
 };
 
 const UserManagement: React.FC<UserManagementProps> = ({ 
@@ -82,28 +83,20 @@ const UserManagement: React.FC<UserManagementProps> = ({
       isLoading = true;
 
       try {
+        // Wait for Telegram WebApp first
+        const telegramUser = await waitForTelegramWebApp(addLog);
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
-        const existingTelegramId = Cookies.get('telegramId');
-        addLog(`Current cookies - telegramId: ${existingTelegramId}, webUserId: ${Cookies.get('webUserId')}`);
         
-        const telegramUser = getTelegramUserInfo(addLog);
-        addLog(`Telegram user detection result: ${telegramUser ? 'Found' : 'Not found'}`);
-        
-        // If we have an existing Telegram ID but WebApp isn't available, keep using it
-        if (existingTelegramId && !telegramUser) {
-          addLog('Using existing Telegram ID');
-          userId = existingTelegramId;
+        if (telegramUser) {
+          // We have Telegram user data
+          userId = `tg-${telegramUser.id}`;
+          Cookies.set('telegramId', userId, { expires: 365 });
+          addLog('✨ Created new Telegram user profile');
         } else if (!userId) {
-          // Only create new ID if we don't have any existing ID
-          if (telegramUser) {
-            userId = `tg-${telegramUser.id}`;
-            Cookies.set('telegramId', userId, { expires: 365 });
-            addLog('Generated new Telegram user ID');
-          } else {
-            userId = `web-${uuidv4()}`;
-            Cookies.set('webUserId', userId, { expires: 365 });
-            addLog('Generated new web user ID');
-          }
+          // Only create web user if we don't have any existing ID
+          userId = `web-${uuidv4()}`;
+          Cookies.set('webUserId', userId, { expires: 365 });
+          addLog('✨ Created new web user profile');
         }
 
         setUserId(userId);
@@ -111,7 +104,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
         const userDoc = await getDoc(userRef);
         
         if (!userDoc.exists()) {
-          addLog('Creating new user...');
+          addLog('📝 Creating new user profile...');
           const newUserData = {
             userId,
             silver: 10,
@@ -120,19 +113,20 @@ const UserManagement: React.FC<UserManagementProps> = ({
             hasSelectedCharacter: false,
             hasGoldField: false,
             createdAt: Date.now(),
-            // Add Telegram user info if available
-            ...(telegramUser ? {
+            platform: telegramUser ? 'telegram' : 'web',
+            ...(telegramUser && {
               telegramId: telegramUser.id,
               firstName: telegramUser.first_name,
               lastName: telegramUser.last_name || '',
               username: telegramUser.username || '',
               isPremium: telegramUser.is_premium || false,
-              platform: 'telegram'
-            } : {
-              platform: 'web'
+              language: window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || 'en'
             })
           };
+
           await setDoc(userRef, newUserData);
+          addLog('✅ User profile created successfully');
+
           setSilver(10);
           setGold(0);
           setCrops([]);
@@ -192,7 +186,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
           }
         }
       } catch (error) {
-        addLog(`Error: ${(error as Error).message}`);
+        addLog(`❌ Error: ${error}`);
       } finally {
         isLoading = false;
       }
