@@ -106,7 +106,6 @@ const UserManagement: React.FC<UserManagementProps> = ({
                                      urlParams.get('tgWebAppData');
 
         let userId = Cookies.get('telegramId') || Cookies.get('webUserId');
-        const existingTelegramId = Cookies.get('telegramId');
         
         // Try to get Telegram user data
         const telegramUser = await waitForTelegramWebApp(addLog);
@@ -118,12 +117,11 @@ const UserManagement: React.FC<UserManagementProps> = ({
             userId = telegramUser.id.toString();
             addLog('✨ Created new Telegram user profile with ID');
           } else if (isTelegramEnvironment) {
-            // Try to extract Telegram ID from URL parameters
-            const urlTelegramId = extractTelegramId(window.location.href);
-            userId = urlTelegramId || `web-${uuidv4()}`; // Fallback to web ID if no Telegram ID
-            addLog('✨ Created new user profile');
+            // Generate temporary ID for Telegram users
+            userId = Date.now().toString();
+            addLog('✨ Created new Telegram user profile');
           } else {
-            // Definitely a web user
+            // Only create web user if definitely not in Telegram
             userId = `web-${uuidv4()}`;
             addLog('✨ Created new web user profile');
           }
