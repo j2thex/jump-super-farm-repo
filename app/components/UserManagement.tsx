@@ -64,6 +64,20 @@ const waitForTelegramWebApp = async (logger: LoggerFunction, maxAttempts = 5): P
   return null;
 };
 
+const extractTelegramId = (url: string): string | null => {
+  try {
+    const startMatch = url.match(/\?start=user(\d+)/);
+    if (startMatch) return startMatch[1];
+    
+    const tgWebAppStartParam = new URLSearchParams(url.split('?')[1]).get('tgWebAppStartParam');
+    if (tgWebAppStartParam?.startsWith('user')) return tgWebAppStartParam.replace('user', '');
+    
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 const UserManagement: React.FC<UserManagementProps> = ({ 
   setUserId, 
   setSilver, 
@@ -101,11 +115,12 @@ const UserManagement: React.FC<UserManagementProps> = ({
         if (!userId) {
           if (telegramUser) {
             // We have full Telegram user data
-            userId = `tg-${telegramUser.id}`;
+            userId = `${telegramUser.id}`;
             addLog('✨ Created new Telegram user profile with full data');
           } else if (isTelegramEnvironment) {
-            // We're in Telegram but don't have user data yet
-            userId = `tg-${Date.now()}`;
+            // Try to extract Telegram ID from URL parameters
+            const urlTelegramId = extractTelegramId(window.location.href);
+            userId = urlTelegramId || `tg-${Date.now()}`;
             addLog('✨ Created new Telegram user profile');
           } else {
             // Definitely a web user
