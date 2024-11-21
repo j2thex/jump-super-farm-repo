@@ -15,7 +15,12 @@ interface UserManagementProps {
   setGameState: (state: GameState) => void;
   setSelectedBonus: (bonus: Bonus | null) => void;
   setHasGoldField: (hasGoldField: boolean) => void;
-  setUserInfo: (info: { name: string; platform: Platform; id?: string }) => void;
+  setUserInfo: (info: { 
+    name: string; 
+    platform: Platform; 
+    id?: string;
+    telegramId?: number;
+  }) => void;
 }
 
 interface Crop {
@@ -40,11 +45,13 @@ interface LoggerFunction {
 
 const waitForTelegramWebApp = async (logger: LoggerFunction, maxAttempts = 5): Promise<TelegramUser | null> => {
   for (let i = 0; i < maxAttempts; i++) {
-    logger(`Attempt ${i + 1} to get Telegram WebApp...`);
+    logger(`📱 Checking Telegram WebApp (attempt ${i + 1})`);
     
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
       const user = window.Telegram.WebApp.initDataUnsafe.user;
-      logger(`✅ Found Telegram user: ${user.first_name}`);
+      logger(`👋 Welcome, ${user.first_name}! (ID: ${user.id})`);
+      if (user.username) logger(`👨‍💻 @${user.username}`);
+      if (user.is_premium) logger('⭐ Premium user');
       return user;
     }
 
@@ -54,7 +61,7 @@ const waitForTelegramWebApp = async (logger: LoggerFunction, maxAttempts = 5): P
                                 !!window.Telegram;
 
     if (isTelegramEnvironment) {
-      logger('📱 In Telegram environment, waiting for WebApp...');
+      logger('📱 Waiting for Telegram WebApp...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       continue;
     }
@@ -113,24 +120,20 @@ const UserManagement: React.FC<UserManagementProps> = ({
         // Create or get user ID
         if (!userId) {
           if (telegramUser) {
-            // Use actual Telegram ID as user ID
+            // Use actual Telegram ID
             userId = telegramUser.id.toString();
-            addLog('✨ Created new Telegram user profile with ID');
+            Cookies.set('telegramId', userId, { expires: 365 });
+            addLog('✨ Created new Telegram user profile');
           } else if (isTelegramEnvironment) {
             // Generate temporary ID for Telegram users
-            userId = Date.now().toString();
+            userId = Math.floor(Math.random() * 1000000000).toString();
+            Cookies.set('telegramId', userId, { expires: 365 });
             addLog('✨ Created new Telegram user profile');
           } else {
             // Only create web user if definitely not in Telegram
             userId = `web-${uuidv4()}`;
-            addLog('✨ Created new web user profile');
-          }
-          
-          // Set appropriate cookie
-          if (isTelegramEnvironment || telegramUser) {
-            Cookies.set('telegramId', userId, { expires: 365 });
-          } else {
             Cookies.set('webUserId', userId, { expires: 365 });
+            addLog('✨ Created new web user profile');
           }
         }
 
@@ -168,9 +171,10 @@ const UserManagement: React.FC<UserManagementProps> = ({
           setCrops([]);
 
           setUserInfo({
-            name: telegramUser?.first_name || 'Telegram User',
+            name: telegramUser?.first_name || 'User',
             platform: isTelegramEnvironment ? 'telegram' : 'web',
-            id: userId
+            id: userId,
+            telegramId: telegramUser?.id
           });
         } else {
           const userData = userDoc.data();

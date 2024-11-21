@@ -22,6 +22,7 @@ interface FarmProps {
   hasGoldField?: boolean;
   userName: string;
   platform: string;
+  telegramId: string;
 }
 
 interface Crop {
@@ -91,7 +92,8 @@ const Farm: React.FC<FarmProps> = ({
   userId,
   hasGoldField = false,
   userName,
-  platform
+  platform,
+  telegramId
 }) => {
   const getCropStage = (plantedAt: number, cropType: string): number => {
     const elapsed = Date.now() - plantedAt;
@@ -207,6 +209,9 @@ const Farm: React.FC<FarmProps> = ({
           <UserInfo>
             <UserName>{userName}</UserName>
             <PlatformIcon>{platform === 'telegram' ? '📱' : '🌐'}</PlatformIcon>
+            {platform === 'telegram' && telegramId && (
+              <TelegramInfo>ID: {telegramId}</TelegramInfo>
+            )}
           </UserInfo>
           {selectedBonus && <BonusTag>🎯 {selectedBonus.name}</BonusTag>}
         </HeaderLeft>
@@ -480,6 +485,14 @@ const Timer = styled.div`
   border-radius: 10px;
   min-width: 40px;
   text-align: center;
+`;
+
+const TelegramInfo = styled.div`
+  font-size: 0.8em;
+  color: #64B5F6;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
 export default Farm; 

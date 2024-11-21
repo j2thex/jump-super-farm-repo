@@ -62,6 +62,7 @@ export default function Game() {
     name: string;
     platform: Platform;
     id?: string;
+    telegramId?: number;
   }>({
     name: 'Web surfer',
     platform: 'web'
@@ -161,6 +162,7 @@ export default function Game() {
           hasGoldField={hasGoldField}
           userName={userInfo.name}
           platform={userInfo.platform}
+          telegramId={userInfo.telegramId?.toString() || ''}
         />
       )}
 
