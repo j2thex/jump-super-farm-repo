@@ -138,6 +138,15 @@ export default function Game() {
       />
       {gameState === 'BONUS_SELECT' && (
         <BonusSelect>
+          {userInfo.platform === 'telegram' && (
+            <TelegramInfo>
+              <UserIcon>👤</UserIcon>
+              <UserName>{userInfo.name}</UserName>
+              {userInfo.telegramId && (
+                <TelegramId>ID: {userInfo.telegramId}</TelegramId>
+              )}
+            </TelegramInfo>
+          )}
           <h2>Select a Bonus</h2>
           {bonuses.map(bonus => (
             <BonusOption key={bonus.id} onClick={() => handleBonusSelect(bonus)}>
@@ -238,4 +247,31 @@ const BonusOption = styled.div`
   p {
     color: #ccc;
   }
+`;
+
+const TelegramInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+`;
+
+const UserIcon = styled.span`
+  font-size: 1.2em;
+`;
+
+const UserName = styled.span`
+  font-weight: 500;
+  color: white;
+`;
+
+const TelegramId = styled.span`
+  color: #64B5F6;
+  font-size: 0.9em;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 `;
