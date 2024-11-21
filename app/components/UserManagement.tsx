@@ -66,19 +66,24 @@ const waitForTelegramWebApp = async (logger: LoggerFunction): Promise<{ user: Te
     logger('📱 Initializing Telegram WebApp...');
     
     // Wait for WebApp to be ready
-    if (window.Telegram?.WebApp?.ready) {
-      await window.Telegram.WebApp.ready();
-    }
-    logger('✅ WebApp ready');
+    for (let i = 0; i < 10; i++) {  // Increased attempts
+      if (window.Telegram?.WebApp) {
+        if (window.Telegram.WebApp.initDataUnsafe?.user) {
+          const user = window.Telegram.WebApp.initDataUnsafe.user;
+          logger(`👤 Found Telegram user: ${user.first_name}`);
+          logger(`🆔 ID: ${user.id}`);
+          if (user.username) logger(`👨‍💻 @${user.username}`);
+          if (user.is_premium) logger('⭐ Premium user');
+          return { user, available: true };
+        }
+        
+        // If WebApp exists but no user data yet, wait a bit
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
+      }
 
-    const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user as TelegramUser | undefined;
-    
-    if (telegramUser) {
-      logger(`👤 Found Telegram user: ${telegramUser.first_name}`);
-      logger(`🆔 ID: ${telegramUser.id}`);
-      if (telegramUser.username) logger(`👨‍💻 @${telegramUser.username}`);
-      if (telegramUser.is_premium) logger('⭐ Premium user');
-      return { user: telegramUser, available: true };
+      logger(`Waiting for Telegram WebApp (attempt ${i + 1}/10)...`);
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // Check if we're in Telegram environment
@@ -87,10 +92,11 @@ const waitForTelegramWebApp = async (logger: LoggerFunction): Promise<{ user: Te
                                !!window.Telegram;
 
     if (isTelegramEnvironment) {
-      logger('📱 Detected Telegram environment, waiting for WebApp...');
+      logger('📱 In Telegram environment but WebApp not initialized');
       return { user: null, available: true };
     }
 
+    logger('🌐 Web environment detected');
     return { user: null, available: false };
   } catch (error) {
     logger(`❌ Error initializing WebApp: ${error}`);
