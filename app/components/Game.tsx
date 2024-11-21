@@ -80,37 +80,22 @@ export default function Game() {
 
   // Single useEffect for initial setup
   useEffect(() => {
-    const telegramName = getTelegramUserName(addLog);
-    const existingTelegramId = Cookies.get('telegramId');
-
-    if (telegramName) {
+    // Check if we're in Telegram
+    const telegramWebApp = window.Telegram?.WebApp;
+    if (telegramWebApp?.initDataUnsafe?.user) {
+      const user = telegramWebApp.initDataUnsafe.user;
+      console.log('Found Telegram user:', user);
+      setTelegramId(user.id.toString());
       setUserInfo({
-        name: telegramName,
+        name: user.first_name,
         platform: 'telegram',
-        id: existingTelegramId
-      });
-    } else if (existingTelegramId) {
-      // If we have a Telegram ID but no WebApp, still treat as Telegram user
-      const storedName = Cookies.get('userName') || 'Telegram User';
-      setUserInfo({
-        name: storedName,
-        platform: 'telegram',
-        id: existingTelegramId
+        id: user.id.toString(),
+        telegramId: user.id
       });
     } else {
-      setUserInfo({
-        name: 'Web surfer',
-        platform: 'web'
-      });
+      console.log('Not in Telegram or WebApp not initialized');
     }
-
-    // Get Telegram user data immediately on load
-    const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (user?.id) {
-      setTelegramId(user.id.toString());
-      console.log('Telegram user:', user); // For debugging
-    }
-  }, [addLog]);
+  }, []);
 
   const handleBonusSelect = async (bonus: Bonus) => {
     try {
